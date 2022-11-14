@@ -2,9 +2,96 @@ const types = require("@babel/types");
 const {re} = require("@babel/core/lib/vendor/import-meta-resolve");
 const fs = require("fs");
 const {default: generate} = require("@babel/generator");
+const parser = require("@babel/parser");
 const traverse = require("@babel/traverse").default
 
+function prehandler() {
+    const code = fs.readFileSync("./source.js").toString();
+    const sourceAST = parser.parse(code);
+    const contextAST = {
+        type: "Program",
+        body: [],
+    }
+    let decryptName = "";
+
+    traverse(sourceAST, {
+        VariableDeclarator(path) {
+            if (types.isStringLiteral(path.node.init)) {
+                if (path.node.init.value === 'jsjiami.com') {
+                    const path1 = path.parentPath;
+                    contextAST.body.push(path1.node);
+
+                    const var2 = path.getNextSibling();
+                    const path2 = var2.scope.getBinding(var2.node.id.name).referencePaths.map(s => s.parentPath.parentPath)[0];
+                    contextAST.body.push(path2.node);
+
+                    const path3 = path1.getNextSibling().getNextSibling();
+                    contextAST.body.push(path3.node);
+
+                    decryptName = path3.node.declarations[0].id.name;
+
+                    path1.remove();
+                    path2.remove();
+                    path3.remove();
+                } else if (path.node.init.value === 'jsjiami.com.v6') {
+                    const path1 = path.parentPath;
+                    contextAST.body.push(path1.node);
+
+                    const var2 = path.getNextSibling().getNextSibling();
+                    const bindings = path.scope.getBinding(var2.node.id.name).referencePaths.filter(p => types.isMemberExpression(p.parentPath));
+                    for (const binding of bindings) {
+                        const ifStatement = binding.findParent(p => p.isIfStatement());
+                        if (ifStatement && ifStatement.node) {
+                            contextAST.body.push(ifStatement.node);
+                        }
+                        const functionDeclaration = binding.findParent(p => p.isFunctionDeclaration());
+                        if (functionDeclaration && functionDeclaration.node) {
+                            contextAST.body.push(functionDeclaration.node);
+
+                            decryptName = functionDeclaration.node.id.name;
+                        }
+                    }
+
+                    path1.remove();
+                    for (const binding of bindings) {
+                        const ifStatement = binding.findParent(p => p.isIfStatement());
+                        if (ifStatement && ifStatement.node) {
+                            ifStatement.remove();
+                        }
+                        const functionDeclaration = binding.findParent(p => p.isFunctionDeclaration());
+                        if (functionDeclaration && functionDeclaration.node) {
+                            functionDeclaration.remove();
+                        }
+                    }
+                }
+            }
+        }
+    })
+
+    contextAST.body.push(...parser.parse(`
+    const name = "${decryptName}";
+    const _decrypt = ${decryptName};
+
+    Object.defineProperty((arg) => _decrypt[arg], "name", { value: name });
+    switch (_decrypt.constructor.name) {
+        case "Array" : exports.decrypt=Object.defineProperty((arg) => _decrypt[arg], "name", { value: name }); break;
+        case "Function": exports.decrypt=_decrypt; break;
+        default: throw "不支持的全局加密函数";
+    }
+`).program.body);
+
+    if (decryptName) {
+        fs.writeFileSync(`./context.js`, generate(contextAST, {minified: true, jsescOption: {"minimal": true}}).code);
+        fs.writeFileSync(`./source.js`, generate(sourceAST, {minified: true}).code);
+        console.log("预处理完毕")
+    } else {
+        throw "不支持的全局加密函数";
+    }
+}
+
+
 const _utils = {
+    prehandler: prehandler,
     traverse: function (ast, config) {
         traverse(ast, config);
         this.simple1(ast);
@@ -12,25 +99,25 @@ const _utils = {
     simple1: function (ast) {
         // 对象合并
         traverse(ast, {
-                VariableDeclarator(path) {
-                    if (types.isObjectExpression(path.node.init)) {
-                        // path.getAllNextSiblings().filter(s => types.isExpressionStatement(s));
-                        for (let expressionStatementPath of path.parentPath.getAllNextSiblings().filter(s => types.isExpressionStatement(s))) {
-                            let expression = expressionStatementPath.node.expression;
-                            if (types.isAssignmentExpression(expression) && expression.operator === '=') {
-                                if (types.isMemberExpression(expression.left) && expression.left.object.name === path.node.id.name && types.isIdentifier(expression.left.property)) {
-                                    if(expression.left.property.name.indexOf("-") > -1) {
-                                        path.node.init.properties.push(types.objectProperty(types.stringLiteral(expression.left.property.name), expression.right));
-                                    } else {
-                                        path.node.init.properties.push(types.objectProperty(expression.left.property.name, expression.right));
-                                    }
-                                    expressionStatementPath.remove();
+            VariableDeclarator(path) {
+                if (types.isObjectExpression(path.node.init)) {
+                    // path.getAllNextSiblings().filter(s => types.isExpressionStatement(s));
+                    for (let expressionStatementPath of path.parentPath.getAllNextSiblings().filter(s => types.isExpressionStatement(s))) {
+                        let expression = expressionStatementPath.node.expression;
+                        if (types.isAssignmentExpression(expression) && expression.operator === '=') {
+                            if (types.isMemberExpression(expression.left) && expression.left.object.name === path.node.id.name && types.isIdentifier(expression.left.property)) {
+                                try {
+                                    path.node.init.properties.push(types.objectProperty(expression.left.property.name, expression.right));
+                                } catch (e) {
+                                    path.node.init.properties.push(types.objectProperty(types.stringLiteral(expression.left.property.name), expression.right));
                                 }
+                                expressionStatementPath.remove();
                             }
                         }
                     }
                 }
-            })
+            }
+        })
         this.simple2(ast);
 
         // 减少调用链路长度
@@ -67,8 +154,16 @@ const _utils = {
                         for (const referencePath of referencePaths) {
                             if (types.isMemberExpression(referencePath.node) && referencePath.node.object.name === objectName &&
                                 (referencePath.node.property.name === variableKey || referencePath.node.property.value === variableKey)) {
+                                if (referencePath.parentPath.isAssignmentExpression() && types.shallowEqual(referencePath.parent.left, referencePath.node)) {
+                                    // 排除a['b'] = 'xxx'的情况
+                                    continue;
+                                }
                                 if (types.isLiteral(variableValue)) {
-                                    referencePath.replaceInline(variableValue);
+                                    try {
+                                        referencePath.replaceInline(variableValue);
+                                    } catch (e) {
+                                        debugger
+                                    }
                                     referencePath.scope.crawl();
                                 } else if (types.isFunction(variableValue) && types.isCallExpression(referencePath.parentPath)) {
                                     // 函数里的表达式只有一个return, 直接替换
@@ -132,16 +227,16 @@ const _utils = {
             },
             "UnaryExpression|BinaryExpression|CallExpression|ConditionalExpression"(path) {
                 const {confident, value} = path.evaluate()
-               try{
-                   if(path.node?.left?.value === 0 && path.node?.right?.value === 0) {
-                       fs.writeFileSync(`./target8.js`, generate(ast, {jsescOption: {"minimal": true}}).code);
-                   }
-                   if (confident && (value === undefined || value.toString() !== path.toString())) {
-                       path.replaceInline(types.valueToNode(value))
-                   }
-               } catch (e) {
+                try {
+                    if (path.node?.left?.value === 0 && path.node?.right?.value === 0) {
+                        fs.writeFileSync(`./target8.js`, generate(ast, {jsescOption: {"minimal": true}}).code);
+                    }
+                    if (confident && (value === undefined || value.toString() !== path.toString())) {
+                        path.replaceInline(types.valueToNode(value))
+                    }
+                } catch (e) {
                     debugger
-               }
+                }
             }
         });
         // 去除无用判断

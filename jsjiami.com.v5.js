@@ -1,3 +1,7 @@
+// 预处理
+const astUtils = require('./utils');
+astUtils.prehandler();
+
 // https://www.jianshu.com/p/c705aec39418
 // https://babeljs.io/docs/en/babel-types
 // https://astexplorer.net/
@@ -7,13 +11,13 @@ const generate = require("@babel/generator").default
 const traverse = require("@babel/traverse").default
 const types = require("@babel/types");
 const {decrypt} = require('./context')
-const astUtils = require('./utils');
+
 
 const fs = require("fs");
 const {re} = require("@babel/core/lib/vendor/import-meta-resolve");
 const {functionCommon} = require("@babel/types/lib/definitions/core");
-const code = fs.readFileSync("./source.js").toString();
 
+const code = fs.readFileSync("./source.js").toString();
 const ast = parser.parse(code);
 astUtils.simple1(ast);
 fs.writeFileSync(`./target8.js`, generate(ast, {jsescOption: {"minimal": true}}).code);
@@ -82,7 +86,11 @@ astUtils.traverse(ast, {
     CallExpression(path) {
         if (path.node.callee.name === decrypt.name) {
             const args = path.node.arguments;
-            if (args.length === 2) {
+            if (args.length === 1) {
+                const arg0 = args[0].value;
+                const decryptedValue = decrypt(arg0);
+                path.replaceWith(types.stringLiteral(unescape(decryptedValue)));
+            } else if (args.length === 2) {
                 const arg0 = isNaN(parseInt(args[0].value)) ? args[0].value : parseInt(args[0].value);
                 const arg1 = args[1].value;
                 const decryptedValue = decrypt(arg0, arg1);
@@ -105,35 +113,6 @@ console.log("全局加密函数，处理完毕")
 
 // 去除死代码
 if (true) {
-    // 去除自执行函数的无用参数
-    // traverse(ast, {
-    //     ExpressionStatement: function (path) {
-    //         var node = path.node;
-    //         if (types.isCallExpression(node.expression) && types.isFunctionExpression(node.expression.callee)) {
-    //             if (node.expression.arguments && node.expression.arguments.length != 0) {
-    //                 var args = node.expression.arguments
-    //                 var params = node.expression.arguments
-    //                 for (var i = 0; i < args.length; i++) {
-    //                     var arg = args[i].name;
-    //                     var param = params[i].name;
-    //                     // 遍历MemberExpression节点，如果arg=param，则替换名称
-    //                     path.traverse({
-    //                         MemberExpression: function (m_path) {
-    //                             if (!types.isIdentifier(m_path.object))
-    //                                 return;
-    //                             if (m_path.object.name != param)
-    //                                 return;
-    //                             m_node.object.name = arg
-    //                         }
-    //                     })
-    //                 }
-    //                 node.expression.arguments = [];
-    //                 node.expression.callee.params = [];
-    //             }
-    //         }
-    //     }
-    // })
-    // fs.writeFileSync(`./target3.js`, generate(ast, {jsescOption: {"minimal": true}}).code);
     traverse(ast, {
         ExpressionStatement: function (path) {
             var node = path.node;
