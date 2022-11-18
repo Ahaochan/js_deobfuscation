@@ -2,10 +2,12 @@
 const astUtils = require('./utils');
 astUtils.prehandler();
 
-// https://www.jianshu.com/p/c705aec39418
-// https://babeljs.io/docs/en/babel-types
-// https://astexplorer.net/
-// https://mp.weixin.qq.com/s/fIbPuNMs5FRADJE5MOZXgA
+// AST语法树解析 https://astexplorer.net/
+
+// 逆向进阶，利用 AST 技术还原 JavaScript 混淆代码 https://mp.weixin.qq.com/s/fIbPuNMs5FRADJE5MOZXgA
+// 来自高纬度的对抗：AST解密JS代码实战（下） https://www.jianshu.com/p/c705aec39418
+// babel官方文档 https://babeljs.io/docs/en/babel-types
+// 深入浅出 Babel 上篇：架构和原理 + 实战 https://juejin.cn/post/6844903956905197576
 const parser = require("@babel/parser");
 const generate = require("@babel/generator").default
 const traverse = require("@babel/traverse").default
