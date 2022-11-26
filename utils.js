@@ -14,59 +14,97 @@ function prehandler() {
     }
     let decryptName = "";
 
-    traverse(sourceAST, {
-        VariableDeclarator(path) {
-            if (types.isStringLiteral(path.node.init)) {
-                if (path.node.init.value === 'jsjiami.com') {
-                    const path1 = path.parentPath;
-                    contextAST.body.push(path1.node);
+    if (decryptName === "") {
+        traverse(sourceAST, {
+            VariableDeclarator(path) {
+                if (types.isStringLiteral(path.node.init)) {
+                    if (path.node.init.value === 'jsjiami.com') {
+                        const path1 = path.parentPath;
+                        contextAST.body.push(path1.node);
 
-                    const var2 = path.getNextSibling();
-                    const path2 = var2.scope.getBinding(var2.node.id.name).referencePaths.map(s => s.parentPath.parentPath)[0];
-                    contextAST.body.push(path2.node);
+                        const var2 = path.getNextSibling();
+                        const path2 = var2.scope.getBinding(var2.node.id.name).referencePaths.map(s => s.parentPath.parentPath)[0];
+                        contextAST.body.push(path2.node);
 
-                    const path3 = path1.getNextSibling().getNextSibling();
-                    contextAST.body.push(path3.node);
+                        const path3 = path1.getNextSibling().getNextSibling();
+                        contextAST.body.push(path3.node);
 
-                    decryptName = path3.node.declarations[0].id.name;
+                        decryptName = path3.node.declarations[0].id.name;
 
-                    path1.remove();
-                    path2.remove();
-                    path3.remove();
-                } else if (path.node.init.value === 'jsjiami.com.v6') {
-                    const path1 = path.parentPath;
-                    contextAST.body.push(path1.node);
+                        path1.remove();
+                        path2.remove();
+                        path3.remove();
+                    } else if (path.node.init.value === 'jsjiami.com.v6') {
+                        const path1 = path.parentPath;
+                        contextAST.body.push(path1.node);
 
-                    const var2 = path.getNextSibling().getNextSibling();
-                    const bindings = path.scope.getBinding(var2.node.id.name).referencePaths.filter(p => types.isMemberExpression(p.parentPath));
-                    for (const binding of bindings) {
-                        const ifStatement = binding.findParent(p => p.isIfStatement());
-                        if (ifStatement && ifStatement.node) {
-                            contextAST.body.push(ifStatement.node);
+                        const var2 = path.getNextSibling().getNextSibling();
+                        const bindings = path.scope.getBinding(var2.node.id.name).referencePaths.filter(p => types.isMemberExpression(p.parentPath));
+                        for (const binding of bindings) {
+                            const ifStatement = binding.findParent(p => p.isIfStatement());
+                            if (ifStatement && ifStatement.node) {
+                                contextAST.body.push(ifStatement.node);
+                            }
+                            const functionDeclaration = binding.findParent(p => p.isFunctionDeclaration());
+                            if (functionDeclaration && functionDeclaration.node) {
+                                contextAST.body.push(functionDeclaration.node);
+
+                                decryptName = functionDeclaration.node.id.name;
+                            }
                         }
-                        const functionDeclaration = binding.findParent(p => p.isFunctionDeclaration());
-                        if (functionDeclaration && functionDeclaration.node) {
-                            contextAST.body.push(functionDeclaration.node);
 
-                            decryptName = functionDeclaration.node.id.name;
-                        }
-                    }
-
-                    path1.remove();
-                    for (const binding of bindings) {
-                        const ifStatement = binding.findParent(p => p.isIfStatement());
-                        if (ifStatement && ifStatement.node) {
-                            ifStatement.remove();
-                        }
-                        const functionDeclaration = binding.findParent(p => p.isFunctionDeclaration());
-                        if (functionDeclaration && functionDeclaration.node) {
-                            functionDeclaration.remove();
+                        path1.remove();
+                        for (const binding of bindings) {
+                            const ifStatement = binding.findParent(p => p.isIfStatement());
+                            if (ifStatement && ifStatement.node) {
+                                ifStatement.remove();
+                            }
+                            const functionDeclaration = binding.findParent(p => p.isFunctionDeclaration());
+                            if (functionDeclaration && functionDeclaration.node) {
+                                functionDeclaration.remove();
+                            }
                         }
                     }
                 }
             }
-        }
-    })
+        })
+    }
+    if (decryptName === "") {
+        traverse(sourceAST, {
+            FunctionDeclaration(path) {
+                const checkFunction = function (p) {
+                    const name = p.node.id.name;
+                    const body = p.node.body.body;
+                    return body.length === 3 &&
+                        types.isVariableDeclaration(body[0]) && body[0].declarations.length === 1 && types.isArrayExpression(body[0].declarations[0].init) &&
+                        types.isExpressionStatement(body[1]) && types.isAssignmentExpression(body[1].expression) && body[1].expression.left.name === name &&
+                        types.isReturnStatement(body[2]);
+                }
+                if (!checkFunction(path)) {
+                    return;
+                }
+                const path3 = path;
+                contextAST.body.push(path3.node);
+
+                const path1 = path.scope.getBinding(path.node.id.name).referencePaths
+                    .filter(p => p.listKey === "arguments" && p.key === 0)
+                    [0].parentPath.parentPath;
+                contextAST.body.push(path1.node);
+
+                const path2 = path.scope.getBinding(path.node.id.name).referencePaths
+                    .map(p => p.parentPath.parentPath)
+                    .filter(p => types.isVariableDeclarator(p))[0]
+                    .parentPath.parentPath.parentPath
+                contextAST.body.push(path2.node);
+
+                decryptName = path2.node.id.name;
+
+                path1.remove();
+                path2.remove();
+                path3.remove();
+            }
+        })
+    }
 
     contextAST.body.push(...parser.parse(`
     const name = "${decryptName}";
@@ -228,11 +266,16 @@ const _utils = {
             "UnaryExpression|BinaryExpression|CallExpression|ConditionalExpression"(path) {
                 const {confident, value} = path.evaluate()
                 try {
-                    if (path.node?.left?.value === 0 && path.node?.right?.value === 0) {
-                        fs.writeFileSync(`./target8.js`, generate(ast, {jsescOption: {"minimal": true}}).code);
+                    if (!confident) {
+                        return;
                     }
-                    if (confident && (value === undefined || value.toString() !== path.toString())) {
-                        path.replaceInline(types.valueToNode(value))
+
+                    if (value === null) {
+                        path.replaceInline(types.nullLiteral())
+                    } else {
+                        if (value === undefined || value.toString() !== path.toString()) {
+                            path.replaceInline(types.valueToNode(value))
+                        }
                     }
                 } catch (e) {
                     debugger

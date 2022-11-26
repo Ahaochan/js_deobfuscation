@@ -143,12 +143,14 @@ if (true) {
                 if (types.isSwitchStatement(switchStatement) && types.isMemberExpression(switchStatement.discriminant) && types.isBreakStatement(breakStatement)) {
                     const sortedNumberVariableName = switchStatement.discriminant.object.name;
                     const sortedNumberVariableValue = path.getAllPrevSiblings()
+                        .filter(p => types.isVariableDeclaration(p))
                         .map(s => s.node.declarations)
                         .flat()
                         .filter(s => s.id.name === sortedNumberVariableName)[0];
 
 
-                    const caseSortedList = types.isCallExpression(sortedNumberVariableValue.init) ? sortedNumberVariableValue.init.callee.object.value.split("|") :
+
+                    const caseSortedList = types.isCallExpression(sortedNumberVariableValue.init) && types.isStringLiteral(sortedNumberVariableValue.init.callee.object) ? sortedNumberVariableValue.init.callee.object.value.split("|") :
                         (types.isArrayExpression(sortedNumberVariableValue.init) ? sortedNumberVariableValue.init.elements.map(e => e.value) : null);
                     if(!!caseSortedList) {
                         const caseList = switchStatement.cases
