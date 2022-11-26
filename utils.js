@@ -34,6 +34,22 @@ function prehandler() {
                         path1.remove();
                         path2.remove();
                         path3.remove();
+                    } else if(path.node.init.value === 'jsjiami.com.v5') {
+                        const path1 = path.parentPath;
+                        contextAST.body.push(path1.node);
+
+                        const var2 = path.getNextSibling().getNextSibling();
+                        const path2 = var2.scope.getBinding(var2.node.id.name).referencePaths.map(s => s.parentPath.parentPath)[0];
+                        contextAST.body.push(path2.node);
+
+                        const path3 = path1.getNextSibling().getNextSibling();
+                        contextAST.body.push(path3.node);
+
+                        decryptName = path3.node.declarations[0].id.name;
+
+                        path1.remove();
+                        path2.remove();
+                        path3.remove();
                     } else if (path.node.init.value === 'jsjiami.com.v6') {
                         const path1 = path.parentPath;
                         contextAST.body.push(path1.node);
