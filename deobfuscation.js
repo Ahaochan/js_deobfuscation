@@ -25,6 +25,19 @@ astUtils.simple1(ast);
 fs.writeFileSync(`./target8.js`, generate(ast, {jsescOption: {"minimal": true}}).code);
 
 // 降低加密函数层级
+astUtils.traverse(ast, {
+    VariableDeclarator(path) {
+        try {
+            if(types.isIdentifier(path.node.init) && path.node.init.name === decrypt.name ) {
+                for (const referencePath of path.scope.getBinding(path.node.id.name).referencePaths) {
+                    referencePath.replaceWith(types.identifier(decrypt.name));
+                }
+            }
+        } catch (e) {
+            debugger
+        }
+    }
+})
 const stack = [];
 const dfs = function (path) {
     const functionName = path.node.id.name;

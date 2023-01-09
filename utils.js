@@ -99,14 +99,17 @@ function prehandler() {
                 if (!checkFunction(path)) {
                     return;
                 }
+                // 词典
                 const path3 = path;
                 contextAST.body.push(path3.node);
 
+                // 混淆函数
                 const path1 = path.scope.getBinding(path.node.id.name).referencePaths
                     .filter(p => p.listKey === "arguments" && p.key === 0)
                     [0].parentPath.parentPath;
                 contextAST.body.push(path1.node);
 
+                // 加密函数
                 const path2 = path.scope.getBinding(path.node.id.name).referencePaths
                     .map(p => p.parentPath.parentPath)
                     .filter(p => types.isVariableDeclarator(p))[0]
