@@ -34,25 +34,27 @@ function prehandler() {
                         path1.remove();
                         path2.remove();
                         path3.remove();
-                    } else if(path.node.init.value === 'jsjiami.com.v5') {
-                        const path1 = path.parentPath;
-                        contextAST.body.push(path1.node);
+                    }
+                    else if(path.node.init.value === 'jsjiami.com.v5') {
+                        const decryptTypePath = path.parentPath;
+                        contextAST.body.push(decryptTypePath.node);
 
                         const var2 = path.getNextSibling().getNextSibling();
                         const path2 = var2.scope.getBinding(var2.node.id.name).referencePaths.map(s => s.parentPath.parentPath)[0];
                         contextAST.body.push(path2.node);
 
-                        const path3 = path1.getNextSibling().getNextSibling();
+                        const path3 = decryptTypePath.getNextSibling().getNextSibling();
                         contextAST.body.push(path3.node);
 
                         decryptName = path3.node.declarations[0].id.name;
 
-                        path1.remove();
+                        decryptTypePath.remove();
                         path2.remove();
                         path3.remove();
-                    } else if (path.node.init.value === 'jsjiami.com.v6') {
-                        const path1 = path.parentPath;
-                        contextAST.body.push(path1.node);
+                    }
+                    else if (path.node.init.value === 'jsjiami.com.v6') {
+                        const decryptTypePath = path.parentPath;
+                        contextAST.body.push(decryptTypePath.node);
 
                         const var2 = path.getNextSibling().getNextSibling();
                         const bindings = path.scope.getBinding(var2.node.id.name).referencePaths.filter(p => types.isMemberExpression(p.parentPath));
@@ -69,7 +71,7 @@ function prehandler() {
                             }
                         }
 
-                        path1.remove();
+                        decryptTypePath.remove();
                         for (const binding of bindings) {
                             const ifStatement = binding.findParent(p => p.isIfStatement());
                             if (ifStatement && ifStatement.node) {
@@ -80,6 +82,31 @@ function prehandler() {
                                 functionDeclaration.remove();
                             }
                         }
+                    }
+                    else if (path.node.init.value === 'jsjiami.com.v7') {
+                        const decryptTypePath = path.parentPath;
+                        contextAST.body.push(decryptTypePath.node);
+
+                        const var2 = path.getNextSibling();
+                        if(!var2.node) {
+                            // 跳过无用声明
+                            return;
+                        }
+                        const bindings = path.scope.getBinding(var2.node.id.name).referencePaths;
+                        for (const binding of bindings) {
+                            if(types.isCallExpression(binding.parentPath)) {
+                                const obfuscateDictPath = binding.parentPath.parentPath.parentPath;
+                                contextAST.body.push(obfuscateDictPath.node);
+                                contextAST.body.push(types.emptyStatement()); // 加分号避免语法错误
+                                obfuscateDictPath.remove();
+                            } else if(types.isVariableDeclarator(binding.parentPath)) {
+                                const decryptFunPath = binding.parentPath.parentPath.parentPath.parentPath;
+                                contextAST.body.push(decryptFunPath.node);
+                                decryptName = decryptFunPath.node.id.name;
+                                decryptFunPath.remove();
+                            }
+                        }
+                        decryptTypePath.remove();
                     }
                 }
             }
@@ -100,27 +127,27 @@ function prehandler() {
                     return;
                 }
                 // 词典
-                const path3 = path;
-                contextAST.body.push(path3.node);
+                const obfuscateDictPath = path;
+                contextAST.body.push(obfuscateDictPath.node);
 
                 // 混淆函数
-                const path1 = path.scope.getBinding(path.node.id.name).referencePaths
+                const decryptTypePath = path.scope.getBinding(path.node.id.name).referencePaths
                     .filter(p => p.listKey === "arguments" && p.key === 0)
                     [0].parentPath.parentPath;
-                contextAST.body.push(path1.node);
+                contextAST.body.push(decryptTypePath.node);
 
                 // 加密函数
-                const path2 = path.scope.getBinding(path.node.id.name).referencePaths
+                const decryptFunPath = path.scope.getBinding(path.node.id.name).referencePaths
                     .map(p => p.parentPath.parentPath)
                     .filter(p => types.isVariableDeclarator(p))[0]
                     .parentPath.parentPath.parentPath
-                contextAST.body.push(path2.node);
+                contextAST.body.push(decryptFunPath.node);
 
-                decryptName = path2.node.id.name;
+                decryptName = decryptFunPath.node.id.name;
 
-                path1.remove();
-                path2.remove();
-                path3.remove();
+                decryptTypePath.remove();
+                decryptFunPath.remove();
+                obfuscateDictPath.remove();
             }
         })
     }
