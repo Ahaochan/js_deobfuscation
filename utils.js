@@ -112,14 +112,14 @@ function prehandler() {
             }
         })
     }
-    if (decryptName === "") {
+    if (!decryptName) {
         traverse(sourceAST, {
             FunctionDeclaration(path) {
                 const checkFunction = function (p) {
                     const name = p.node.id.name;
                     const body = p.node.body.body;
                     return body.length === 3 &&
-                        types.isVariableDeclaration(body[0]) && body[0].declarations.length === 1 && types.isArrayExpression(body[0].declarations[0].init) &&
+                        types.isVariableDeclaration(body[0]) && body[0].declarations.length === 1 && (types.isArrayExpression(body[0].declarations[0].init) || types.isCallExpression(body[0].declarations[0].init)) &&
                         types.isExpressionStatement(body[1]) && types.isAssignmentExpression(body[1].expression) && body[1].expression.left.name === name &&
                         types.isReturnStatement(body[2]);
                 }
@@ -132,9 +132,10 @@ function prehandler() {
 
                 // 混淆函数
                 const decryptTypePath = path.scope.getBinding(path.node.id.name).referencePaths
-                    .filter(p => p.listKey === "arguments" && p.key === 0)
+                    .filter(p => p.listKey === "arguments" && (p.key === 0 || p.key === 2))
                     [0].parentPath.parentPath;
                 contextAST.body.push(decryptTypePath.node);
+                contextAST.body.push(types.emptyStatement()); // 加分号避免语法错误
 
                 // 加密函数
                 const decryptFunPath = path.scope.getBinding(path.node.id.name).referencePaths
@@ -152,6 +153,10 @@ function prehandler() {
         })
     }
 
+
+    if (!decryptName) {
+        throw "decryptName 解析失败, 可能是未识别的加密方式";
+    }
     contextAST.body.push(...parser.parse(`
     const name = "${decryptName}";
     const _decrypt = ${decryptName};
