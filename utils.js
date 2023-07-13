@@ -7,7 +7,9 @@ const traverse = require("@babel/traverse").default
 
 function prehandler() {
     const code = fs.readFileSync("./source.js").toString();
-    const sourceAST = parser.parse(code);
+    const sourceAST = parser.parse(code, {
+        allowReturnOutsideFunction: true
+    });
     const contextAST = {
         type: "Program",
         body: [],
