@@ -1,8 +1,8 @@
-import utils from "../src/utils";
-import * as fs from "fs";
-import * as parser from "@babel/parser";
-import {ParserOptions} from "@babel/parser";
-import generate from "@babel/generator";
+const utils = require('../src/utils-old');
+const fs = require("fs");
+const parser = require("@babel/parser");
+const { ParserOptions } = require("@babel/parser");
+const generate = require('@babel/generator').default;
 
 (function main() {
     const astConfig = {
@@ -15,30 +15,30 @@ import generate from "@babel/generator";
     const ast = testEvaluate(astConfig);
 
 
-    fs.writeFileSync(`./test.js`, generate(ast, {jsescOption: {"minimal": true}}).code);
+    fs.writeFileSync(`./output.js`, generate(ast, {jsescOption: {"minimal": true}}).code);
     console.log("处理完毕");
 })();
 
 
-function testRemoveUnusedIf(astConfig: ParserOptions) {
+function testRemoveUnusedIf(astConfig) {
     const code = fs.readFileSync("../example/removeUnusedIf.js").toString();
     const ast = parser.parse(code, astConfig);
     return utils.removeUnusedIf(ast);
 }
 
-function testSplitCommaToMultiline(astConfig: ParserOptions) {
+function testSplitCommaToMultiline(astConfig) {
     const code = fs.readFileSync("../example/splitCommaToMultiline.js").toString();
     const ast = parser.parse(code, astConfig);
     return utils.splitCommaToMultiline(ast);
 }
 
-function testRemoveEmptyStatement(astConfig: ParserOptions) {
+function testRemoveEmptyStatement(astConfig) {
     const code = fs.readFileSync("../example/removeEmptyStatement.js").toString();
     const ast = parser.parse(code, astConfig);
     return utils.removeEmptyStatement(ast);
 }
 
-function testEvaluate(astConfig: ParserOptions) {
+function testEvaluate(astConfig) {
     const code = fs.readFileSync("../example/evaluate.js").toString();
     const ast = parser.parse(code, astConfig);
     return utils.evaluate(ast);

@@ -1,6 +1,8 @@
 // 预处理
-const astUtils = require('./utils');
-astUtils.prehandler();
+const fs = require("fs");
+const sourceCode = fs.readFileSync("./dist/source.js").toString();
+const astUtils = require('./src/utils-old');
+astUtils.prehandler(sourceCode);
 
 // AST语法树解析 https://astexplorer.net/
 
@@ -12,15 +14,17 @@ const parser = require("@babel/parser");
 const generate = require("@babel/generator").default
 const traverse = require("@babel/traverse").default
 const types = require("@babel/types");
-const {decrypt} = require('./context')
+const {decrypt} = require('./dist/context')
 
 
-const fs = require("fs");
+
 const {re} = require("@babel/core/lib/vendor/import-meta-resolve");
 const {functionCommon} = require("@babel/types/lib/definitions/core");
 
-const code = fs.readFileSync("./source.js").toString();
-const ast = parser.parse(code);
+const code = fs.readFileSync("./dist/source.js").toString();
+const ast = parser.parse(code, {
+    allowReturnOutsideFunction: true
+});
 astUtils.simple1(ast);
 fs.writeFileSync(`./target8.js`, generate(ast, {jsescOption: {"minimal": true}}).code);
 
