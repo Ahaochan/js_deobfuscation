@@ -282,7 +282,7 @@ const _utils = {
         });
         return ast;
     },
-    replaceIndenti: function (ast) {
+    evaluateFunction: function (ast) {
         // 标量替换
         traverse(ast, {
             ObjectProperty(path) {
@@ -316,7 +316,6 @@ const _utils = {
                                     const nodeArguments = callPath.node.arguments;
                                     if (types.isBinaryExpression(returnStatement) && nodeArguments.length === 2) {
                                         // 二元计算表达式
-                                        fs.writeFileSync(`./target8.js`, generate(ast, {jsescOption: {"minimal": true}}).code);
                                         callPath.replaceInline(types.binaryExpression(returnStatement.operator, nodeArguments[0], nodeArguments[1]));
                                         callPath.scope.crawl();
                                     } else if (types.isLogicalExpression(returnStatement) && nodeArguments.length === 2) {
@@ -459,7 +458,7 @@ const _utils = {
         ast = this.flattenCallChain(ast);
         this.simple2(ast);
 
-        ast = this.replaceIndenti(ast);
+        ast = this.evaluateFunction(ast);
         this.simple2(ast);
     },
     simple2: function (ast) {
