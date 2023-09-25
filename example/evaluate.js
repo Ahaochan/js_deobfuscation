@@ -4,6 +4,7 @@ var a = 0xff;
 // 0xff;
 0xff;
 
+// var b = (-(-(-2)));
 var b = (-(-(-2)));
 
 // var c = 1 + 2 + 3;
@@ -25,4 +26,5 @@ function main() {
 // (function (num) { console.log(num)})(1 + 2, 3 + 4);
 (function (num) { console.log(num)})(1 + 2, 3 + 4);
 
+// 1 + 2 ? console.log("true") : console.log("false");
 1 + 2 ? console.log("true") : console.log("false");
