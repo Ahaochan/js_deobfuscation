@@ -12,7 +12,8 @@ const generate = require('@babel/generator').default;
     // const ast = testRemoveUnusedIf(astConfig);
     // const ast = testSplitCommaToMultiline(astConfig);
     // const ast = testRemoveEmptyStatement(astConfig);
-    const ast = testEvaluate(astConfig);
+    // const ast = testEvaluate(astConfig);
+    const ast = testFlattenCallChain(astConfig);
 
 
     fs.writeFileSync(`./output.js`, generate(ast, {jsescOption: {"minimal": true}}).code);
@@ -42,4 +43,10 @@ function testEvaluate(astConfig) {
     const code = fs.readFileSync("../example/evaluate.js").toString();
     const ast = parser.parse(code, astConfig);
     return utils.evaluate(ast);
+}
+
+function testFlattenCallChain(astConfig) {
+    const code = fs.readFileSync("../example/flattenCallChain.js").toString();
+    const ast = parser.parse(code, astConfig);
+    return utils.flattenCallChain(ast);
 }

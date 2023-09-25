@@ -269,20 +269,14 @@ const _utils = {
         });
         return ast;
     },
-    replaceInit: function (ast) {
+    flattenCallChain: function (ast) {
         // 减少调用链路长度
         traverse(ast, {
-            VariableDeclarator(path) {
-                const variable = path.node;
-                if (types.isObjectExpression(variable.init)) {
-                    const binding = path.scope.getBinding(variable.id.name);
-                    if (binding.referencePaths.length === 1) {
-                        let referencePath = binding.referencePaths[0].parentPath;
-                        if (types.isVariableDeclarator(referencePath)) {
-                            referencePath.replaceWith(types.variableDeclarator(referencePath.node.id, variable.init));
-                            path.remove();
-                        }
-                    }
+            CallExpression(path) {
+                const callPath = path.node;
+                const binding = path.scope.getBinding(callPath.callee.name);
+                if(binding && types.isVariableDeclarator(binding.path) && types.isIdentifier(binding.path.node.id) && types.isIdentifier(binding.path.node.init)) {
+                    path.replaceWith(types.callExpression(binding.path.node.init, callPath.arguments));
                 }
             }
         });
@@ -462,7 +456,7 @@ const _utils = {
         ast = this.mergeObject(ast);
         this.simple2(ast);
 
-        ast = this.replaceInit(ast);
+        ast = this.flattenCallChain(ast);
         this.simple2(ast);
 
         ast = this.replaceIndenti(ast);
