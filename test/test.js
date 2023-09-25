@@ -13,7 +13,8 @@ const generate = require('@babel/generator').default;
     // const ast = testSplitCommaToMultiline(astConfig);
     // const ast = testRemoveEmptyStatement(astConfig);
     // const ast = testEvaluate(astConfig);
-    const ast = testFlattenCallChain(astConfig);
+    // const ast = testFlattenCallChain(astConfig);
+    const ast = testRemoveUnusedVar(astConfig);
 
 
     fs.writeFileSync(`./output.js`, generate(ast, {jsescOption: {"minimal": true}}).code);
@@ -49,4 +50,10 @@ function testFlattenCallChain(astConfig) {
     const code = fs.readFileSync("../example/flattenCallChain.js").toString();
     const ast = parser.parse(code, astConfig);
     return utils.flattenCallChain(ast);
+}
+
+function testRemoveUnusedVar(astConfig) {
+    const code = fs.readFileSync("../example/removeUnusedVar.js").toString();
+    const ast = parser.parse(code, astConfig);
+    return utils.removeUnusedVar(ast);
 }

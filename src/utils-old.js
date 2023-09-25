@@ -350,35 +350,42 @@ const _utils = {
         return ast;
     },
     removeUnusedVar: (ast) => {
-        // 去除无用变量
-        traverse(ast, {
-            VariableDeclarator(path) {
-                const binding = path.scope.getBinding(path.node.id.name);
+        let flag = true;
+        while(flag) {
+            flag = false;
+            console.log("测试");
+            // 去除无用变量
+            traverse(ast, {
+                VariableDeclarator(path) {
+                    const binding = path.scope.getBinding(path.node.id.name);
 
-                // 如标识符被修改过，则不能进行删除动作。
-                if (!binding || binding.constantViolations.length > 0) {
-                    return;
+                    // 如标识符被修改过，则不能进行删除动作。
+                    if (!binding || binding.constantViolations.length > 0) {
+                        return;
+                    }
+                    if (types.isForOfStatement(path.parentPath.parentPath) || types.isForInStatement(path.parentPath.parentPath) || types.isForStatement(path.parentPath.parentPath)) {
+                        return;
+                    }
+
+                    // 未被引用
+                    if (!binding.referenced) {
+                        flag = true;
+                        path.remove();
+                    }
+
+                    // 被引用次数为0
+                    // if (binding.references === 0) {
+                    //     path.remove();
+                    // }
+
+                    // 长度为0，变量没有被引用过
+                    // if (binding.referencePaths.length === 0) {
+                    //     path.remove();
+                    // }
                 }
-                if (types.isForOfStatement(path.parentPath.parentPath) || types.isForInStatement(path.parentPath.parentPath) || types.isForStatement(path.parentPath.parentPath)) {
-                    return;
-                }
-
-                // 未被引用
-                if (!binding.referenced) {
-                    path.remove();
-                }
-
-                // 被引用次数为0
-                // if (binding.references === 0) {
-                //     path.remove();
-                // }
-
-                // 长度为0，变量没有被引用过
-                // if (binding.referencePaths.length === 0) {
-                //     path.remove();
-                // }
-            }
-        })
+            });
+            traverse.cache.clear();
+        }
         return ast;
     },
     removeUnusedIf: (ast) => {
