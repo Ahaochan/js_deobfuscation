@@ -278,6 +278,15 @@ const _utils = {
                 if(binding && types.isVariableDeclarator(binding.path) && types.isIdentifier(binding.path.node.id) && types.isIdentifier(binding.path.node.init)) {
                     path.replaceWith(types.callExpression(binding.path.node.init, callPath.arguments));
                 }
+            },
+            VariableDeclarator(path) {
+                const node = path.node;
+                if(types.isIdentifier(node.id) && types.isIdentifier(node.init)) {
+                    const sourceVar = path.scope.getBinding(node.init.name).path.node;
+                    if(types.isVariableDeclarator(sourceVar) && types.isObjectExpression(sourceVar.init)) {
+                        path.replaceWith(types.variableDeclarator(node.id, sourceVar.init));
+                    }
+                }
             }
         });
         return ast;

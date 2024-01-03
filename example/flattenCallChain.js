@@ -15,3 +15,11 @@ function fun(_0x2c1f69) {
     tmp0('tmp0-arg0');
     tmp0('tmp0-arg1');
 }
+
+const realVar1 = {
+    "XVrLR": "length",
+    "mMzYI": "size",
+};
+const myvar1 = realVar1;
+console.log(myvar1.XVrLR);
+console.log(myvar1.mMzYI);
