@@ -291,6 +291,22 @@ const _utils = {
         });
         return ast;
     },
+    simpleCall: function (ast) {
+        traverse(ast, {
+            MemberExpression: function (path) {
+                var node = path.node;
+                if (!types.isStringLiteral(node.property))
+                    return;
+                if (!node.computed || !node.computed === true)
+                    return;
+
+                // 将Literal类型节点转为Identifier节点
+                node.computed = false;
+                node.property = types.identifier(node.property.value);
+            }
+        });
+        return ast;
+    },
     evaluateFunction: function (ast) {
         // 标量替换
         traverse(ast, {
@@ -344,6 +360,35 @@ const _utils = {
                             }
                         }
                     }
+                }
+            }
+        });
+        return ast;
+    },
+    evaluateExpression: (ast) => {
+        // 表达式还原
+        traverse(ast, {
+            "NumericLiteral|StringLiteral"(path) {
+                if (path?.node?.extra?.raw) {
+                    delete path.node.extra.raw
+                }
+            },
+            "UnaryExpression|BinaryExpression|CallExpression|ConditionalExpression"(path) {
+                const {confident, value} = path.evaluate()
+                try {
+                    if (!confident) {
+                        return;
+                    }
+
+                    if (value === null) {
+                        path.replaceInline(types.nullLiteral())
+                    } else {
+                        if (value === undefined || value.toString() !== path.toString()) {
+                            path.replaceInline(types.valueToNode(value))
+                        }
+                    }
+                } catch (e) {
+                    debugger
                 }
             }
         });
@@ -438,40 +483,14 @@ const _utils = {
         })
         return ast;
     },
-    evaluate: (ast) => {
-        // 表达式还原
-        traverse(ast, {
-            "NumericLiteral|StringLiteral"(path) {
-                if (path?.node?.extra?.raw) {
-                    delete path.node.extra.raw
-                }
-            },
-            "UnaryExpression|BinaryExpression|CallExpression|ConditionalExpression"(path) {
-                const {confident, value} = path.evaluate()
-                try {
-                    if (!confident) {
-                        return;
-                    }
-
-                    if (value === null) {
-                        path.replaceInline(types.nullLiteral())
-                    } else {
-                        if (value === undefined || value.toString() !== path.toString()) {
-                            path.replaceInline(types.valueToNode(value))
-                        }
-                    }
-                } catch (e) {
-                    debugger
-                }
-            }
-        });
-        return ast;
-    },
     simple1: function (ast) {
         ast = this.mergeObject(ast);
         this.simple2(ast);
 
         ast = this.flattenCallChain(ast);
+        this.simple2(ast);
+
+        ast = this.simpleCall(ast);
         this.simple2(ast);
 
         ast = this.evaluateFunction(ast);
@@ -482,7 +501,7 @@ const _utils = {
 
         ast = this.removeEmptyStatement(ast);
         ast = this.splitCommaToMultiline(ast);
-        ast = this.evaluate(ast);
+        ast = this.evaluateExpression(ast);
 
         ast = this.removeUnusedIf(ast);
         ast = this.removeUnusedVar(ast);

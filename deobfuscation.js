@@ -193,19 +193,9 @@ if (true) {
 
 // 调用方式由a['b']改为a.b
 if (true) {
-    astUtils.traverse(ast, {
-        MemberExpression: function (path) {
-            var node = path.node;
-            if (!types.isStringLiteral(node.property))
-                return;
-            if (!node.computed || !node.computed === true)
-                return;
+    astUtils.simple1(ast);
+    astUtils.simple2(ast);
 
-            // 将Literal类型节点转为Identifier节点
-            node.computed = false;
-            node.property = types.identifier(node.property.value);
-        }
-    })
     fs.writeFileSync(`./target4.js`, generate(ast, {jsescOption: {"minimal": true}}).code);
     console.log("调用方式由a['b']改为a.b，处理完毕")
 }

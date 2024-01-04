@@ -1,0 +1,2 @@
+// array.size
+array["size"]

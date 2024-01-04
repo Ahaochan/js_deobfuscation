@@ -14,7 +14,8 @@ const generate = require('@babel/generator').default;
     // const ast = testRemoveEmptyStatement(astConfig);
     // const ast = testEvaluate(astConfig);
     // const ast = testFlattenCallChain(astConfig);
-    const ast = testRemoveUnusedVar(astConfig);
+    // const ast = testRemoveUnusedVar(astConfig);
+    const ast = testSimpleCall(astConfig);
 
 
     fs.writeFileSync(`./output.js`, generate(ast, {jsescOption: {"minimal": true}}).code);
@@ -43,7 +44,7 @@ function testRemoveEmptyStatement(astConfig) {
 function testEvaluate(astConfig) {
     const code = fs.readFileSync("../example/evaluate.js").toString();
     const ast = parser.parse(code, astConfig);
-    return utils.evaluate(ast);
+    return utils.evaluateExpression(ast);
 }
 
 function testFlattenCallChain(astConfig) {
@@ -56,4 +57,10 @@ function testRemoveUnusedVar(astConfig) {
     const code = fs.readFileSync("../example/removeUnusedVar.js").toString();
     const ast = parser.parse(code, astConfig);
     return utils.removeUnusedVar(ast);
+}
+
+function testSimpleCall(astConfig) {
+    const code = fs.readFileSync("../example/simpleCall.js").toString();
+    const ast = parser.parse(code, astConfig);
+    return utils.simpleCall(ast);
 }
