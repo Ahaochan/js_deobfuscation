@@ -282,8 +282,8 @@ const _utils = {
             VariableDeclarator(path) {
                 const node = path.node;
                 if(types.isIdentifier(node.id) && types.isIdentifier(node.init)) {
-                    const sourceVar = path.scope.getBinding(node.init.name).path.node;
-                    if(types.isVariableDeclarator(sourceVar) && types.isObjectExpression(sourceVar.init)) {
+                    const sourceVar = path.scope.getBinding(node.init.name)?.path?.node;
+                    if(sourceVar && types.isVariableDeclarator(sourceVar) && types.isObjectExpression(sourceVar.init)) {
                         path.replaceWith(types.variableDeclarator(node.id, sourceVar.init));
                     }
                 }
@@ -293,7 +293,7 @@ const _utils = {
     },
     simpleCall: function (ast) {
         traverse(ast, {
-            MemberExpression: function (path) {
+            "MemberExpression|OptionalMemberExpression": function (path) {
                 var node = path.node;
                 if (!types.isStringLiteral(node.property))
                     return;
