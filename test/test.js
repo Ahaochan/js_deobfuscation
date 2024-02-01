@@ -15,7 +15,8 @@ const generate = require('@babel/generator').default;
     // const ast = testEvaluate(astConfig);
     // const ast = testFlattenCallChain(astConfig);
     // const ast = testRemoveUnusedVar(astConfig);
-    const ast = testSimpleCall(astConfig);
+    // const ast = testSimpleCall(astConfig);
+    const ast = testSimpleMethodDefinition(astConfig);
 
 
     fs.writeFileSync(`./output.js`, generate(ast, {jsescOption: {"minimal": true}}).code);
@@ -63,4 +64,10 @@ function testSimpleCall(astConfig) {
     const code = fs.readFileSync("../example/simpleCall.js").toString();
     const ast = parser.parse(code, astConfig);
     return utils.simpleCall(ast);
+}
+
+function testSimpleMethodDefinition(astConfig) {
+    const code = fs.readFileSync("../example/simpleMethodDefinition.js").toString();
+    const ast = parser.parse(code, astConfig);
+    return utils.simpleClassMethod(ast);
 }

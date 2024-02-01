@@ -307,6 +307,18 @@ const _utils = {
         });
         return ast;
     },
+    simpleClassMethod: function (ast) {
+        traverse(ast, {
+            ClassMethod: function (path) {
+                path.node.computed = false;
+                if (types.isStringLiteral(path.node.key)) {
+                    const newKey = types.identifier(path.node.key.value);
+                    path.get('key').replaceWith(newKey);
+                }
+            }
+        });
+        return ast;
+    },
     evaluateFunction: function (ast) {
         // 标量替换
         traverse(ast, {
@@ -491,6 +503,9 @@ const _utils = {
         this.simple2(ast);
 
         ast = this.simpleCall(ast);
+        this.simple2(ast);
+
+        ast = this.simpleClassMethod(ast);
         this.simple2(ast);
 
         ast = this.evaluateFunction(ast);
