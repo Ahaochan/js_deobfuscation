@@ -18,6 +18,50 @@ function prehandler(code) {
     if (decryptName === "") {
         traverse(sourceAST, {
             VariableDeclarator(path) {
+                // jsjiami.com.v5.js特征: 超长数组, 被引用2次, 一次作为形参，一次作为变量
+                if (types.isArrayExpression(path.node.init) && path.node.init.elements.length > 25) {
+                    const referencePaths = path.scope.getBinding(path.node.id.name).referencePaths;
+                    if(referencePaths.length !== 2) {
+                        return;
+                    }
+                    // 词典
+                    let obfuscateDictPath = path.parentPath;
+                    let decryptTypePath = null;
+                    let decryptFunPath = null;
+                    contextAST.body.push(obfuscateDictPath.node);
+
+                    for (let referencePath of referencePaths) {
+                        // 函数形参
+                        if(types.isIdentifier(referencePath) && types.isCallExpression(referencePath.parentPath)) {
+                            // 混淆函数
+                            decryptTypePath = referencePath.parentPath.parentPath;
+                            contextAST.body.push(decryptTypePath.node);
+                        }
+                        // 加密函数中的变量
+                        if(types.isIdentifier(referencePath) && types.isMemberExpression(referencePath.parentPath)) {
+                            // 加密函数
+                            decryptFunPath = referencePath.parentPath.parentPath.parentPath.parentPath.parentPath.parentPath.parentPath;
+                            contextAST.body.push(decryptFunPath.node);
+                        }
+                    }
+
+                    if(contextAST.body.length === 3) {
+                        console.log('加密方式: 符合jsjiami.com.v5.js特征');
+                        decryptName = decryptFunPath.node.declarations[0].id.name;
+                        obfuscateDictPath.remove();
+                        decryptTypePath.remove();
+                        decryptFunPath.remove();
+                    } else {
+                        console.log('加密方式: 不符合jsjiami.com.v5.js特征');
+                    }
+                }
+            }
+        })
+    }
+
+    if (decryptName === "") {
+        traverse(sourceAST, {
+            VariableDeclarator(path) {
                 if (types.isStringLiteral(path.node.init)) {
                     if (path.node.init.value === 'jsjiami.com') {
                         const path1 = path.parentPath;
