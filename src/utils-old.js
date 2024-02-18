@@ -51,6 +51,7 @@ function prehandler(code) {
                         obfuscateDictPath.remove();
                         decryptTypePath.remove();
                         decryptFunPath.remove();
+                        path.stop();
                     } else {
                         console.log('加密方式: 不符合jsjiami.com.v5.js特征');
                     }
