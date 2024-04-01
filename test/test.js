@@ -11,12 +11,12 @@ const generate = require('@babel/generator').default;
 
     // const ast = testEvaluate(astConfig);
     // const ast = testFlattenCallChain(astConfig);
-    const ast = testInlineFunction(astConfig);
+    // const ast = testInlineFunction(astConfig);
     // const ast = testRemoveEmptyStatement(astConfig);
     // const ast = testRemoveUnusedIf(astConfig);
     // const ast = testRemoveUnusedVar(astConfig);
     // const ast = testSimpleCall(astConfig);
-    // const ast = testSimpleMethodDefinition(astConfig);
+    const ast = testSimpleClassMethod(astConfig);
     // const ast = testSplitCommaToMultiline(astConfig);
 
 
@@ -67,8 +67,8 @@ function testSimpleCall(astConfig) {
     return utils.simpleCall(ast);
 }
 
-function testSimpleMethodDefinition(astConfig) {
-    const code = fs.readFileSync("../example/simpleMethodDefinition.js").toString();
+function testSimpleClassMethod(astConfig) {
+    const code = fs.readFileSync("../example/simpleClassMethod.js").toString();
     const ast = parser.parse(code, astConfig);
     return utils.simpleClassMethod(ast);
 }

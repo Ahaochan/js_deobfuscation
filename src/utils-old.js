@@ -409,13 +409,20 @@ const _utils = {
     },
     simpleClassMethod: function (ast) {
         traverse(ast, {
-            ClassMethod: function (path) {
+            "ClassMethod"(path) {
                 path.node.computed = false;
                 if (types.isStringLiteral(path.node.key)) {
                     const newKey = types.identifier(path.node.key.value);
                     path.get('key').replaceWith(newKey);
                 }
-            }
+            },
+            ObjectProperty(path){
+                const node = path.node;
+                path.node.computed = false;
+                if(types.isIdentifier(path.node.key)) {
+                    node.key = types.StringLiteral(path.node.key.name);
+                }
+            },
         });
         return ast;
     },
