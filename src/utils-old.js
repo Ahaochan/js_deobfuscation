@@ -337,7 +337,7 @@ const _utils = {
         return ast;
     },
     inlineFunction: function (ast) {
-        const inline = function(path, functionName, functionBody) {
+        const inline = function (path, functionName, functionBody) {
             if (functionBody.body.body.length !== 1) {
                 return; // 方法体只有一个return
             }
@@ -594,6 +594,16 @@ const _utils = {
                     }
                     path.replaceInline(expressions[expressions.length - 1]);
                 }
+            },
+            "VariableDeclaration"(path) {
+                if(!path.parentPath.isBlock()) {
+                    return; // 避免 for(var i = 0, j = 0;;) 被处理
+                }
+                if (path.node.declarations.length === 1) {
+                    return; // 跳过只有一个变量的
+                }
+                const newVars = path.node.declarations.map(v => types.VariableDeclaration(path.node.kind, [v]));
+                path.replaceInline(newVars);
             }
         })
         return ast;
