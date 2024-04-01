@@ -21,7 +21,7 @@ function prehandler(code) {
                 // jsjiami.com.v5.js特征: 超长数组, 被引用2次, 一次作为形参，一次作为变量
                 if (types.isArrayExpression(path.node.init) && path.node.init.elements.length > 25) {
                     const referencePaths = path.scope.getBinding(path.node.id.name).referencePaths;
-                    if(referencePaths.length !== 2) {
+                    if (referencePaths.length !== 2) {
                         return;
                     }
                     // 词典
@@ -32,20 +32,20 @@ function prehandler(code) {
 
                     for (let referencePath of referencePaths) {
                         // 函数形参
-                        if(types.isIdentifier(referencePath) && types.isCallExpression(referencePath.parentPath)) {
+                        if (types.isIdentifier(referencePath) && types.isCallExpression(referencePath.parentPath)) {
                             // 混淆函数
                             decryptTypePath = referencePath.parentPath.parentPath;
                             contextAST.body.push(decryptTypePath.node);
                         }
                         // 加密函数中的变量
-                        if(types.isIdentifier(referencePath) && types.isMemberExpression(referencePath.parentPath)) {
+                        if (types.isIdentifier(referencePath) && types.isMemberExpression(referencePath.parentPath)) {
                             // 加密函数
                             decryptFunPath = referencePath.parentPath.parentPath.parentPath.parentPath.parentPath.parentPath.parentPath;
                             contextAST.body.push(decryptFunPath.node);
                         }
                     }
 
-                    if(contextAST.body.length === 3) {
+                    if (contextAST.body.length === 3) {
                         console.log('加密方式: 符合jsjiami.com.v5.js特征');
                         decryptName = decryptFunPath.node.declarations[0].id.name;
                         obfuscateDictPath.remove();
@@ -177,7 +177,7 @@ function prehandler(code) {
                 const decryptTypePath = path.scope.getBinding(path.node.id.name).referencePaths
                     .filter(p => p.listKey === "arguments" && (p.key === 0 || p.key === 2))
                     [0]?.parentPath?.parentPath;
-                if(decryptTypePath) {
+                if (decryptTypePath) {
                     contextAST.body.push(decryptTypePath.node);
                     contextAST.body.push(types.emptyStatement()); // 加分号避免语法错误
                 }
@@ -192,7 +192,7 @@ function prehandler(code) {
 
                 decryptName = decryptFunPath.node.id.name;
 
-                if(decryptTypePath) {
+                if (decryptTypePath) {
                     decryptTypePath.remove();
                 }
                 decryptFunPath.remove();
@@ -240,7 +240,7 @@ function prehandler(code) {
                         const args = path.node.arguments;
                         for (let i = 0; i < args.length; i++) {
                             const arg = args[i];
-                            if(types.isIdentifier(arg) && arg.name === obfuscateDictName) {
+                            if (types.isIdentifier(arg) && arg.name === obfuscateDictName) {
                                 decryptTypePath = path.findParent(p => types.isExpressionStatement(p));
                                 path.stop();
                                 return;
@@ -320,18 +320,66 @@ const _utils = {
             CallExpression(path) {
                 const callPath = path.node;
                 const binding = path.scope.getBinding(callPath.callee.name);
-                if(binding && types.isVariableDeclarator(binding.path) && types.isIdentifier(binding.path.node.id) && types.isIdentifier(binding.path.node.init)) {
+                if (binding && types.isVariableDeclarator(binding.path) && types.isIdentifier(binding.path.node.id) && types.isIdentifier(binding.path.node.init)) {
                     path.replaceWith(types.callExpression(binding.path.node.init, callPath.arguments));
                 }
             },
             VariableDeclarator(path) {
                 const node = path.node;
-                if(types.isIdentifier(node.id) && types.isIdentifier(node.init)) {
+                if (types.isIdentifier(node.id) && types.isIdentifier(node.init)) {
                     const sourceVar = path.scope.getBinding(node.init.name)?.path?.node;
-                    if(sourceVar && types.isVariableDeclarator(sourceVar) && types.isObjectExpression(sourceVar.init)) {
+                    if (sourceVar && types.isVariableDeclarator(sourceVar) && types.isObjectExpression(sourceVar.init)) {
                         path.replaceWith(types.variableDeclarator(node.id, sourceVar.init));
                     }
                 }
+            }
+        });
+        return ast;
+    },
+    inlineFunction: function (ast) {
+        const inline = function(path, functionName, functionBody) {
+            if (functionBody.body.body.length !== 1) {
+                return; // 方法体只有一个return
+            }
+            const returnStatement = functionBody.body.body[0];
+            if (!types.isReturnStatement(returnStatement)) {
+                return; // 方法体只有一个return
+            }
+            // 查找函数引用
+            for (const referencePath of path.scope.getBinding(functionName).referencePaths) {
+                if (types.isCallExpression(referencePath.parentPath)) {
+                    // 修改BinaryExpression
+                    if (types.isBinaryExpression(returnStatement.argument)) {
+                        const leftIndex = (functionBody.params[0].name === returnStatement.argument.left.name) ? 0 : 1;
+                        const rightIndex = (leftIndex === 0) ? 1 : 0;
+
+                        const newNode = types.binaryExpression(returnStatement.argument.operator,
+                            referencePath.parentPath.node.arguments[leftIndex], referencePath.parentPath.node.arguments[rightIndex])
+
+                        referencePath.parentPath.replaceWith(newNode);
+                        referencePath.parentPath.scope.crawl();
+                    }
+                }
+            }
+        }
+
+        traverse(ast, {
+            "VariableDeclarator": function (path) {
+                const functionName = path.node.id.name;
+                const functionExpression = path.node.init;
+                if (!types.isFunctionExpression(functionExpression)) {
+                    return; // 查找var inline1 = function () {}
+                }
+                inline(path, functionName, functionExpression);
+
+            },
+            "FunctionDeclaration": function (path) {
+                const functionName = path.node.id.name;
+                const functionDeclaration = path.node;
+                if (!types.isFunctionDeclaration(functionDeclaration)) {
+                    return; // 查找var inline1 = function () {}
+                }
+                inline(path, functionName, functionDeclaration);
             }
         });
         return ast;
@@ -431,8 +479,8 @@ const _utils = {
                 }
             },
             "UnaryExpression|BinaryExpression|CallExpression|ConditionalExpression"(path) {
-                const {confident, value} = path.evaluate()
                 try {
+                    const {confident, value} = path.evaluate()
                     if (!confident) {
                         return;
                     }
@@ -462,9 +510,8 @@ const _utils = {
     },
     removeUnusedVar: (ast) => {
         let flag = true;
-        while(flag) {
+        while (flag) {
             flag = false;
-            console.log("测试");
             // 去除无用变量
             traverse(ast, {
                 VariableDeclarator(path) {
@@ -529,7 +576,7 @@ const _utils = {
                         expressions.push(expression);
                     }
                     path.replaceInline(expressions);
-                } else if(types.isReturnStatement(path.parentPath.node)) {
+                } else if (types.isReturnStatement(path.parentPath.node)) {
                     const expressions = path.node.expressions;
                     for (let i = 0; i < expressions.length - 1; i++) {
                         path.parentPath.insertBefore(expressions[i]);
@@ -545,6 +592,9 @@ const _utils = {
         this.simple2(ast);
 
         ast = this.flattenCallChain(ast);
+        this.simple2(ast);
+
+        ast = this.inlineFunction(ast);
         this.simple2(ast);
 
         ast = this.simpleCall(ast);
