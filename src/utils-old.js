@@ -398,15 +398,11 @@ const _utils = {
     simpleCall: function (ast) {
         traverse(ast, {
             "MemberExpression|OptionalMemberExpression": function (path) {
-                var node = path.node;
-                if (!types.isStringLiteral(node.property))
-                    return;
-                if (!node.computed || !node.computed === true)
-                    return;
-
-                // 将Literal类型节点转为Identifier节点
-                node.computed = false;
-                node.property = types.identifier(node.property.value);
+                const node = path.node;
+                if (!node.computed && types.isIdentifier(node.property)) {
+                    node.property = types.StringLiteral(node.property.name);
+                    node.computed = true;
+                }
             }
         });
         return ast;
