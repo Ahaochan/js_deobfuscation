@@ -349,7 +349,7 @@ const _utils = {
             for (const referencePath of path.scope.getBinding(functionName).referencePaths) {
                 if (types.isCallExpression(referencePath.parentPath)) {
                     // 修改BinaryExpression
-                    if (types.isBinaryExpression(returnStatement.argument)) {
+                    if (types.isBinaryExpression(returnStatement.argument) && types.isIdentifier(returnStatement.argument.left) && types.isIdentifier(returnStatement.argument.right)) {
                         const leftIndex = (functionBody.params[0].name === returnStatement.argument.left.name) ? 0 : 1;
                         const rightIndex = (leftIndex === 0) ? 1 : 0;
 
@@ -382,6 +382,9 @@ const _utils = {
                 inline(path, functionName, functionDeclaration);
             },
             "AssignmentExpression": function (path) {
+                if (!types.isIdentifier(path.node.left)) {
+                    return; // 只查找 inline1 = function() {}
+                }
                 const functionName = path.node.left.name;
                 const functionExpression = path.node.right;
                 if (!types.isFunctionExpression(functionExpression)) {
