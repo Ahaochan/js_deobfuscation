@@ -380,6 +380,14 @@ const _utils = {
                     return; // 查找var inline1 = function () {}
                 }
                 inline(path, functionName, functionDeclaration);
+            },
+            "AssignmentExpression": function (path) {
+                const functionName = path.node.left.name;
+                const functionExpression = path.node.right;
+                if (!types.isFunctionExpression(functionExpression)) {
+                    return; // 查找var inline1 = function () {}
+                }
+                inline(path, functionName, functionExpression);
             }
         });
         return ast;
