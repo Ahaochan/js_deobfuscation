@@ -1,224 +1,410 @@
-import * as types from "@babel/types";
-import {Node, Program, returnStatement, Statement} from "@babel/types";
-// const {re} = require("@babel/core/lib/vendor/import-meta-resolve");
-import * as fs from "fs";
-// const {default: generate} = require("@babel/generator");
-import * as parser from "@babel/parser";
-import traverse, {NodePath, TraverseOptions} from "@babel/traverse";
-import generate from "@babel/generator";
+import * as types from '@babel/types'
+import traverse, { NodePath, TraverseOptions } from '@babel/traverse'
+import * as parser from '@babel/parser'
+import fs from 'fs'
+import generate from '@babel/generator'
 
-function prehandler() {
-    const code = fs.readFileSync("./source.js").toString();
-    const sourceAST = parser.parse(code, {
-        allowReturnOutsideFunction: true
-    });
-    // const contextAST: Program = {
-    //     type: "Program",
-    //     body: [] as Node[],
-    //     directives: [],
-    //     sourceType: "module",
-    //     sourceFile: "",
-    // }
-    const contextAST = types.program([]);
-    let decryptName = "";
+function prehandler (code: string) {
+  const sourceAST = parser.parse(code, {
+    allowReturnOutsideFunction: true
+  })
+  const contextASTBody: types.Statement[] = []
+  const contextAST = types.program(contextASTBody)
 
-    if (decryptName === "") {
-        traverse(sourceAST, {
-            VariableDeclarator(path) {
-                if (types.isStringLiteral(path.node.init)) {
-                    if (path.node.init.value === 'jsjiami.com') {
-                        // console.log('加密方式: jsjiami.com');
-                        // const path1 = path.parentPath;
-                        // contextAST.body.push(path1.node);
-                        //
-                        //
-                        // const var2 = path.getNextSibling();
-                        // const path2 = var2.scope.getBinding(var2.node.id.name).referencePaths.map(s => s.parentPath.parentPath)[0];
-                        // contextAST.body.push(path2.node);
-                        //
-                        // const path3 = path1.getNextSibling().getNextSibling();
-                        // contextAST.body.push(path3.node);
-                        //
-                        // decryptName = path3.node.declarations[0].id.name;
-                        //
-                        // path1.remove();
-                        // path2.remove();
-                        // path3.remove();
-                    } else if (path.node.init.value === 'jsjiami.com.v5') {
-                        // console.log('加密方式: jsjiami.com.v5');
-                        // const decryptTypePath = path.parentPath;
-                        // contextAST.body.push(decryptTypePath.node);
-                        //
-                        // const var2 = path.getNextSibling().getNextSibling();
-                        // const path2 = var2.scope.getBinding(var2.node.id.name).referencePaths.map(s => s.parentPath.parentPath)[0];
-                        // contextAST.body.push(path2.node);
-                        //
-                        // const path3 = decryptTypePath.getNextSibling().getNextSibling();
-                        // contextAST.body.push(path3.node);
-                        //
-                        // decryptName = path3.node.declarations[0].id.name;
-                        //
-                        // decryptTypePath.remove();
-                        // path2.remove();
-                        // path3.remove();
-                    } else if (path.node.init.value === 'jsjiami.com.v6') {
-                        console.log('加密方式: jsjiami.com.v6');
-                        // const decryptTypePath = path.parentPath;
-                        // contextAST.body.push(decryptTypePath.node);
-                        //
-                        // const var2 = path.getNextSibling().getNextSibling();
-                        // const bindings = path.scope.getBinding(var2.node.id.name).referencePaths.filter(p => types.isMemberExpression(p.parentPath));
-                        // for (const binding of bindings) {
-                        //     const ifStatement = binding.findParent(p => p.isIfStatement());
-                        //     if (ifStatement && ifStatement.node) {
-                        //         contextAST.body.push(ifStatement.node);
-                        //     }
-                        //     const functionDeclaration = binding.findParent(p => p.isFunctionDeclaration());
-                        //     if (functionDeclaration && functionDeclaration.node) {
-                        //         contextAST.body.push(functionDeclaration.node);
-                        //
-                        //         decryptName = functionDeclaration.node.id.name;
-                        //     }
-                        // }
-                        //
-                        // decryptTypePath.remove();
-                        // for (const binding of bindings) {
-                        //     const ifStatement = binding.findParent(p => p.isIfStatement());
-                        //     if (ifStatement && ifStatement.node) {
-                        //         ifStatement.remove();
-                        //     }
-                        //     const functionDeclaration = binding.findParent(p => p.isFunctionDeclaration());
-                        //     if (functionDeclaration && functionDeclaration.node) {
-                        //         functionDeclaration.remove();
-                        //     }
-                        // }
-                    } else if (path.node.init.value === 'jsjiami.com.v7') {
-                        // const decryptTypePath = path.parentPath;
-                        // contextAST.body.push(decryptTypePath.node);
-                        //
-                        // const var2 = path.getNextSibling();
-                        // if (!var2.node) {
-                        //     // 跳过无用声明
-                        //     return;
-                        // }
-                        // const bindings = path.scope.getBinding(var2.node.id.name).referencePaths;
-                        // for (const binding of bindings) {
-                        //     if (types.isCallExpression(binding.parentPath)) {
-                        //         const obfuscateDictPath = binding.parentPath.parentPath.parentPath;
-                        //         contextAST.body.push(obfuscateDictPath.node);
-                        //         contextAST.body.push(types.emptyStatement()); // 加分号避免语法错误
-                        //         obfuscateDictPath.remove();
-                        //     } else if (types.isVariableDeclarator(binding.parentPath)) {
-                        //         const decryptFunPath = binding.parentPath.parentPath.parentPath.parentPath;
-                        //         contextAST.body.push(decryptFunPath.node);
-                        //         decryptName = decryptFunPath.node.id.name;
-                        //         decryptFunPath.remove();
-                        //     }
-                        // }
-                        // decryptTypePath.remove();
-                        // console.log('加密方式: jsjiami.com.v7');
-                    }
-                }
+  let decryptName = ''
+
+  // jsjiami.com.v5.js特征: 超长数组, 被引用2次, 一次作为形参，一次作为变量
+  if (decryptName === '') {
+    traverse(sourceAST, {
+      VariableDeclarator (path) {
+        const init = path.node.init
+        if (types.isArrayExpression(init) && init.elements.length > 25) {
+          const nodeId = path.node.id
+          if (!types.isIdentifier(nodeId)) {
+            console.log('path.node.id不是Identifier, 不满足jsjiami.com.v5.js特征')
+            return
+          }
+          const binding = path.scope.getBinding(nodeId.name)
+          if (!binding) {
+            console.log(`path.node.id.name: ${nodeId.name}找不到引用关系, 不满足jsjiami.com.v5.js特征`)
+            return
+          }
+          const referencePaths = binding.referencePaths
+          if (referencePaths.length !== 2) {
+            console.log(`path.node.id.name的引用关系为${referencePaths.length}, 不满足jsjiami.com.v5.js特征`)
+            return
+          }
+          // 词典
+          let obfuscateDictPath = path.parentPath
+          let decryptTypePath = null
+          let decryptFunPath = null
+          if (types.isStatement(obfuscateDictPath.node)) {
+            contextAST.body.push(obfuscateDictPath.node)
+          }
+
+          for (let referencePath of referencePaths) {
+            // 函数形参
+            if (referencePath.isIdentifier() && referencePath.parentPath?.isCallExpression()) {
+              // 混淆函数
+              const rootPath = referencePath.findParent((p) => p.isExpressionStatement())
+              if (rootPath?.isExpressionStatement()) {
+                decryptTypePath = rootPath;
+                contextAST.body.push(decryptTypePath.node)
+              }
             }
-        })
-    }
-    // if (!decryptName) {
-    //     traverse(sourceAST, {
-    //         FunctionDeclaration(path) {
-    //             const checkFunction = function (p) {
-    //                 const name = p.node.id.name;
-    //                 const body = p.node.body.body;
-    //                 return body.length === 3 &&
-    //                     types.isVariableDeclaration(body[0]) && body[0].declarations.length === 1 && (types.isArrayExpression(body[0].declarations[0].init) || types.isCallExpression(body[0].declarations[0].init)) &&
-    //                     types.isExpressionStatement(body[1]) && types.isAssignmentExpression(body[1].expression) && body[1].expression.left.name === name &&
-    //                     types.isReturnStatement(body[2]);
-    //             }
-    //             if (!checkFunction(path)) {
-    //                 return;
-    //             }
-    //             console.log('加密方式: unknown 1');
-    //             // 词典
-    //             const obfuscateDictPath = path;
-    //             contextAST.body.push(obfuscateDictPath.node);
-    //
-    //             // 混淆函数
-    //             const decryptTypePath = path.scope.getBinding(path.node.id.name).referencePaths
-    //                 .filter(p => p.listKey === "arguments" && (p.key === 0 || p.key === 2))
-    //                 [0].parentPath.parentPath;
-    //             contextAST.body.push(decryptTypePath.node);
-    //             contextAST.body.push(types.emptyStatement()); // 加分号避免语法错误
-    //
-    //             // 加密函数
-    //             const decryptFunPath = path.scope.getBinding(path.node.id.name).referencePaths
-    //                 .map(p => p.parentPath.parentPath)
-    //                 .filter(p => types.isVariableDeclarator(p))[0]
-    //                 .parentPath.parentPath.parentPath
-    //             contextAST.body.push(decryptFunPath.node);
-    //
-    //             decryptName = decryptFunPath.node.id.name;
-    //
-    //             decryptTypePath.remove();
-    //             decryptFunPath.remove();
-    //             obfuscateDictPath.remove();
-    //         }
-    //     })
-    // }
-    // if (!decryptName) {
-    //     traverse(sourceAST, {
-    //         FunctionDeclaration(path) {
-    //             const checkFunction = function (p) {
-    //                 const name = p.node.id.name;
-    //                 const body = p.node.body.body;
-    //                 return body.length === 2 &&
-    //                     types.isVariableDeclaration(body[0]) && body[0].declarations.length === 1 && (types.isIdentifier(body[0].declarations[0].init)) &&
-    //                     types.isReturnStatement(body[1]) && body[1].argument.expressions.length === 2 &&
-    //                     types.isAssignmentExpression(body[1].argument.expressions[0]) && types.isIdentifier(body[1].argument.expressions[0].left) && name === body[1].argument.expressions[0].left.name &&
-    //                     types.isCallExpression(body[1].argument.expressions[1]) && types.isIdentifier(body[1].argument.expressions[1].callee) && name === body[1].argument.expressions[1].callee.name;
-    //             }
-    //             if (!checkFunction(path)) {
-    //                 return;
-    //             }
-    //             console.log('加密方式: unknown 2');
-    //             // 加密函数
-    //             const decryptFunPath = path;
-    //             contextAST.body.push(decryptFunPath.node);
-    //
-    //             // 词典
-    //             const obfuscateDictName = path.node.body.body[0].declarations[0].init.name;
-    //             let obfuscateDictPath;
-    //             traverse(sourceAST, {
-    //                 AssignmentExpression(path) {
-    //                     if (path.node.left.name === obfuscateDictName) {
-    //                         obfuscateDictPath = path;
-    //                         contextAST.body.push(obfuscateDictPath.node);
-    //                         contextAST.body.push(types.emptyStatement()); // 加分号避免语法错误
-    //                     }
-    //                 }
-    //             })
-    //
-    //
-    //             // 混淆函数
-    //             path.find
-    //             const decryptTypePath = path.scope.getBinding(path.node.id.name).referencePaths
-    //                 .filter(p => p.listKey === "arguments" && (p.key === 0 || p.key === 2))
-    //                 [0].parentPath.parentPath;
-    //             contextAST.body.push(decryptTypePath.node);
-    //             contextAST.body.push(types.emptyStatement()); // 加分号避免语法错误
-    //
-    //             decryptName = decryptFunPath.node.id.name;
-    //
-    //             decryptTypePath.remove();
-    //             decryptFunPath.remove();
-    //             obfuscateDictPath.remove();
-    //         }
-    //     })
-    // }
+            // 加密函数中的变量
+            if (referencePath.isIdentifier() && referencePath.parentPath?.isMemberExpression()) {
+              // 加密函数
+              const rootPath = referencePath.findParent((p) => p.isFunctionExpression())?.findParent((p) => p.isVariableDeclaration())
+              if (rootPath?.isVariableDeclaration()) {
+                decryptFunPath = rootPath;
+                contextAST.body.push(decryptFunPath.node)
+              }
+            }
+          }
+          if (contextAST.body.length === 3 && obfuscateDictPath && decryptTypePath &&
+            decryptFunPath?.isVariableDeclaration() && types.isIdentifier(decryptFunPath.node.declarations[0].id)) {
+            console.log('加密方式: 符合jsjiami.com.v5.js特征')
+            decryptName = decryptFunPath.node.declarations[0].id.name
+            obfuscateDictPath.remove()
+            decryptTypePath.remove()
+            decryptFunPath.remove()
+            path.stop()
+          } else {
+            console.log('加密方式: 不符合jsjiami.com.v5.js特征')
+          }
+        }
+      }
+    })
+  }
 
+  // jsjiami.com.v6.js特征: 超长数组, 被引用4次, 一次作为形参，一次作为变量
+  if (decryptName === '') {
+    traverse(sourceAST, {
+      VariableDeclarator (path) {
+        const init = path.node.init
+        if (types.isArrayExpression(init) && init.elements.length > 25) {
+          const nodeId = path.node.id
+          if (!types.isIdentifier(nodeId)) {
+            console.log('path.node.id不是Identifier, 不满足jsjiami.com.v6.js特征')
+            return
+          }
+          const binding = path.scope.getBinding(nodeId.name)
+          if (!binding) {
+            console.log(`path.node.id.name: ${nodeId.name}找不到引用关系, 不满足jsjiami.com.v6.js特征`)
+            return
+          }
+          const referencePaths = binding.referencePaths
+          if (referencePaths.length !== 4) {
+            console.log(`path.node.id.name的引用关系为${referencePaths.length}, 不满足jsjiami.com.v6.js特征`)
+            return
+          }
+          // 词典
+          let obfuscateDictPath = path.parentPath
+          let decryptTypePath = null
+          let decryptFunPath = null
+          if (types.isStatement(obfuscateDictPath.node)) {
+            contextAST.body.push(obfuscateDictPath.node)
+          }
 
-    if (!decryptName) {
-        throw "decryptName 解析失败, 可能是未识别的加密方式";
-    }
-    contextAST.body.push(...parser.parse(`
+          for (const referencePath of referencePaths) {
+            // 函数形参
+            if (referencePath.isIdentifier() && referencePath.parentPath?.isCallExpression()) {
+              // 混淆函数
+              const rootPath = referencePath.findParent((p) => p.isCallExpression())?.findParent((p) => p.isIfStatement())
+              if (rootPath?.isIfStatement()) {
+                decryptTypePath = rootPath;
+                contextAST.body.push(decryptTypePath.node)
+              }
+            }
+            // 加密函数中的变量
+            if (referencePath.isIdentifier() && referencePath.parentPath?.isMemberExpression()) {
+              // 加密函数
+              const rootPath = referencePath.findParent((p) => p.isFunctionDeclaration())
+              if (rootPath?.isFunctionDeclaration()) {
+                decryptFunPath = rootPath;
+                contextAST.body.push(decryptFunPath.node)
+              }
+            }
+          }
+
+          if (contextAST.body.length === 3 && obfuscateDictPath && decryptTypePath &&
+            decryptFunPath?.isFunctionDeclaration() && types.isIdentifier(decryptFunPath.node.id)) {
+            console.log('加密方式: 符合jsjiami.com.v6.js特征')
+            decryptName = decryptFunPath.node.id.name
+            obfuscateDictPath.remove()
+            decryptTypePath.remove()
+            decryptFunPath.remove()
+            path.stop()
+          } else {
+            console.log('加密方式: 不符合jsjiami.com.v6.js特征')
+          }
+        }
+      }
+    })
+  }
+
+  // jsjiami.com.v7.js特征: 函数包裹超长数组
+  if (decryptName === '') {
+    traverse(sourceAST, {
+      ArrayExpression (path) {
+        if(path.parentPath.isReturnStatement() && path.node.elements.length > 25) {
+          // 词典
+          const obfuscateDictPath = path.findParent(p => p.isFunctionDeclaration());
+          if(!obfuscateDictPath?.isFunctionDeclaration()) {
+            console.log('超长数组不在函数的包裹下, 不满足jsjiami.com.v7.js特征')
+            return;
+          }
+          let decryptTypePath = null
+          let decryptFunPath = null
+          if (types.isStatement(obfuscateDictPath.node)) {
+            contextAST.body.push(obfuscateDictPath.node)
+          }
+          if(!types.isIdentifier(obfuscateDictPath.node.id)) {
+            return;
+          }
+          const obfuscateDictName = obfuscateDictPath.node.id.name;
+          const referencePaths = obfuscateDictPath.scope.getBinding(obfuscateDictName)?.referencePaths || [];
+          for (const referencePath of referencePaths) {
+            // 函数形参
+            if (referencePath.isIdentifier() && referencePath.parentPath?.isCallExpression()) {
+              // 混淆函数
+              const rootPath = referencePath.findParent((p) => p.isCallExpression())?.findParent((p) => p.isExpressionStatement())
+              if (rootPath?.isExpressionStatement()) {
+                decryptTypePath = rootPath;
+                contextAST.body.push(decryptTypePath.node)
+              }
+            }
+            // 加密函数中的变量
+            if (referencePath.isIdentifier() && referencePath.parentPath?.isCallExpression()) {
+              // 加密函数
+              const rootPath = referencePath.findParent((p) => p.isVariableDeclaration())?.findParent((p) => p.isFunctionDeclaration())
+              if (rootPath?.isFunctionDeclaration()) {
+                decryptFunPath = rootPath;
+                contextAST.body.push(decryptFunPath.node)
+              }
+            }
+          }
+
+          if (contextAST.body.length === 3 && obfuscateDictPath && decryptTypePath &&
+            decryptFunPath?.isFunctionDeclaration() && types.isIdentifier(decryptFunPath.node.id)) {
+            console.log('加密方式: 符合jsjiami.com.v7.js特征')
+            contextAST.body.unshift(types.variableDeclaration("var", [types.variableDeclarator(types.identifier("version_"), types.stringLiteral("jsjiami.com.v7"))]));
+            decryptName = decryptFunPath.node.id.name
+            obfuscateDictPath.remove()
+            decryptTypePath.remove()
+            decryptFunPath.remove()
+            path.stop()
+          } else {
+            console.log('加密方式: 不符合jsjiami.com.v7.js特征')
+          }
+        }
+      }
+    })
+  }
+
+  // if (decryptName === "") {
+  //   traverse(sourceAST, {
+  //     VariableDeclarator(path) {
+  //       if (types.isStringLiteral(path.node.init)) {
+  //         if (path.node.init.value === 'jsjiami.com') {
+  //           const path1 = path.parentPath;
+  //           contextAST.body.push(path1.node);
+  //
+  //           const var2 = path.getNextSibling();
+  //           const path2 = var2.scope.getBinding(var2.node.id.name).referencePaths.map(s => s.parentPath.parentPath)[0];
+  //           contextAST.body.push(path2.node);
+  //
+  //           const path3 = path1.getNextSibling().getNextSibling();
+  //           contextAST.body.push(path3.node);
+  //
+  //           decryptName = path3.node.declarations[0].id.name;
+  //
+  //           path1.remove();
+  //           path2.remove();
+  //           path3.remove();
+  //         } else if (path.node.init.value === 'jsjiami.com.v5') {
+  //           const decryptTypePath = path.parentPath;
+  //           contextAST.body.push(decryptTypePath.node);
+  //
+  //           const var2 = path.getNextSibling().getNextSibling();
+  //           const path2 = var2.scope.getBinding(var2.node.id.name).referencePaths.map(s => s.parentPath.parentPath)[0];
+  //           contextAST.body.push(path2.node);
+  //
+  //           const path3 = decryptTypePath.getNextSibling().getNextSibling();
+  //           contextAST.body.push(path3.node);
+  //
+  //           decryptName = path3.node.declarations[0].id.name;
+  //
+  //           decryptTypePath.remove();
+  //           path2.remove();
+  //           path3.remove();
+  //         } else if (path.node.init.value === 'jsjiami.com.v6') {
+  //           const decryptTypePath = path.parentPath;
+  //           contextAST.body.push(decryptTypePath.node);
+  //
+  //           const var2 = path.getNextSibling().getNextSibling();
+  //           const bindings = path.scope.getBinding(var2.node.id.name).referencePaths.filter(p => types.isMemberExpression(p.parentPath));
+  //           for (const binding of bindings) {
+  //             const ifStatement = binding.findParent(p => p.isIfStatement());
+  //             if (ifStatement && ifStatement.node) {
+  //               contextAST.body.push(ifStatement.node);
+  //             }
+  //             const functionDeclaration = binding.findParent(p => p.isFunctionDeclaration());
+  //             if (functionDeclaration && functionDeclaration.node) {
+  //               contextAST.body.push(functionDeclaration.node);
+  //
+  //               decryptName = functionDeclaration.node.id.name;
+  //             }
+  //           }
+  //
+  //           decryptTypePath.remove();
+  //           for (const binding of bindings) {
+  //             const ifStatement = binding.findParent(p => p.isIfStatement());
+  //             if (ifStatement && ifStatement.node) {
+  //               ifStatement.remove();
+  //             }
+  //             const functionDeclaration = binding.findParent(p => p.isFunctionDeclaration());
+  //             if (functionDeclaration && functionDeclaration.node) {
+  //               functionDeclaration.remove();
+  //             }
+  //           }
+  //         } else if (path.node.init.value === 'jsjiami.com.v7') {
+  //           const decryptTypePath = path.parentPath;
+  //           contextAST.body.push(decryptTypePath.node);
+  //
+  //           const var2 = path.getNextSibling();
+  //           if (!var2.node) {
+  //             // 跳过无用声明
+  //             return;
+  //           }
+  //           const bindings = path.scope.getBinding(var2.node.id.name).referencePaths;
+  //           for (const binding of bindings) {
+  //             if (types.isCallExpression(binding.parentPath)) {
+  //               const obfuscateDictPath = binding.parentPath.parentPath.parentPath;
+  //               contextAST.body.push(obfuscateDictPath.node);
+  //               contextAST.body.push(types.emptyStatement()); // 加分号避免语法错误
+  //               obfuscateDictPath.remove();
+  //             } else if (types.isVariableDeclarator(binding.parentPath)) {
+  //               const decryptFunPath = binding.parentPath.parentPath.parentPath.parentPath;
+  //               contextAST.body.push(decryptFunPath.node);
+  //               decryptName = decryptFunPath.node.id.name;
+  //               decryptFunPath.remove();
+  //             }
+  //           }
+  //           decryptTypePath.remove();
+  //         }
+  //       }
+  //     }
+  //   })
+  // }
+  // if (!decryptName) {
+  //   traverse(sourceAST, {
+  //     FunctionDeclaration(path) {
+  //       const checkFunction = function (p) {
+  //         const name = p.node.id.name;
+  //         const body = p.node.body.body;
+  //         return body.length === 3 &&
+  //           types.isVariableDeclaration(body[0]) && body[0].declarations.length === 1 && (types.isArrayExpression(body[0].declarations[0].init) || types.isCallExpression(body[0].declarations[0].init)) &&
+  //           types.isExpressionStatement(body[1]) && types.isAssignmentExpression(body[1].expression) && body[1].expression.left.name === name &&
+  //           types.isReturnStatement(body[2]);
+  //       }
+  //       if (!checkFunction(path)) {
+  //         return;
+  //       }
+  //       // 词典
+  //       const obfuscateDictPath = path;
+  //       contextAST.body.push(obfuscateDictPath.node);
+  //
+  //       // 混淆函数
+  //       const decryptTypePath = path.scope.getBinding(path.node.id.name).referencePaths
+  //         .filter(p => p.listKey === "arguments" && (p.key === 0 || p.key === 2))
+  //         [0]?.parentPath?.parentPath;
+  //       if (decryptTypePath) {
+  //         contextAST.body.push(decryptTypePath.node);
+  //         contextAST.body.push(types.emptyStatement()); // 加分号避免语法错误
+  //       }
+  //
+  //       // 加密函数
+  //       const decryptFunPath = path.scope.getBinding(path.node.id.name).referencePaths
+  //         .map(p => p.parentPath.parentPath)
+  //         .filter(p => types.isVariableDeclarator(p))
+  //         .map(p => p.parentPath.parentPath.parentPath)
+  //         .filter(p => types.isFunctionDeclaration(p)).pop(); // 取最后一个元素
+  //       contextAST.body.push(decryptFunPath.node);
+  //
+  //       decryptName = decryptFunPath.node.id.name;
+  //
+  //       if (decryptTypePath) {
+  //         decryptTypePath.remove();
+  //       }
+  //       decryptFunPath.remove();
+  //       obfuscateDictPath.remove();
+  //     }
+  //   })
+  // }
+  //
+  // if (!decryptName) {
+  //   traverse(sourceAST, {
+  //     FunctionDeclaration(path) {
+  //       const checkFunction = function (p) {
+  //         const name = p.node.id.name;
+  //         const body = p.node.body.body;
+  //         return body.length === 2 &&
+  //           types.isVariableDeclaration(body[0]) && body[0].declarations.length === 1 && (types.isIdentifier(body[0].declarations[0].init)) &&
+  //           types.isReturnStatement(body[1]) && body[1].argument.expressions.length === 2 &&
+  //           types.isAssignmentExpression(body[1].argument.expressions[0]) && types.isIdentifier(body[1].argument.expressions[0].left) && name === body[1].argument.expressions[0].left.name &&
+  //           types.isCallExpression(body[1].argument.expressions[1]) && types.isIdentifier(body[1].argument.expressions[1].callee) && name === body[1].argument.expressions[1].callee.name;
+  //       }
+  //       if (!checkFunction(path)) {
+  //         return;
+  //       }
+  //       console.log('加密方式: unknown 2');
+  //       // 加密函数
+  //       const decryptFunPath = path;
+  //       contextAST.body.push(decryptFunPath.node);
+  //       // 词典
+  //       const obfuscateDictName = path.node.body.body[0].declarations[0].init.name;
+  //       let obfuscateDictPath;
+  //       traverse(sourceAST, {
+  //         AssignmentExpression(path) {
+  //           if (path.node.left.name === obfuscateDictName) {
+  //             obfuscateDictPath = path;
+  //             contextAST.body.push(obfuscateDictPath.node);
+  //             contextAST.body.push(types.emptyStatement()); // 加分号避免语法错误
+  //             path.stop();
+  //           }
+  //         }
+  //       })
+  //       // 混淆函数
+  //       let decryptTypePath;
+  //       traverse(sourceAST, {
+  //         CallExpression(path) {
+  //           const args = path.node.arguments;
+  //           for (let i = 0; i < args.length; i++) {
+  //             const arg = args[i];
+  //             if (types.isIdentifier(arg) && arg.name === obfuscateDictName) {
+  //               decryptTypePath = path.findParent(p => types.isExpressionStatement(p));
+  //               path.stop();
+  //               return;
+  //             }
+  //           }
+  //         }
+  //       });
+  //       contextAST.body.push(decryptTypePath.node);
+  //       contextAST.body.push(types.emptyStatement()); // 加分号避免语法错误
+  //       decryptName = decryptFunPath.node.id.name;
+  //       decryptTypePath.remove();
+  //       decryptFunPath.remove();
+  //       obfuscateDictPath.remove();
+  //     }
+  //   })
+  // }
+
+  if (!decryptName) {
+    throw 'decryptName 解析失败, 可能是未识别的加密方式'
+  }
+  contextAST.body.push(...parser.parse(`
     const name = "${decryptName}";
     const _decrypt = ${decryptName};
 
@@ -228,150 +414,469 @@ function prehandler() {
         case "Function": exports.decrypt=_decrypt; break;
         default: throw "不支持的全局加密函数";
     }
-`).program.body);
+`).program.body)
 
-    if (decryptName) {
-        fs.writeFileSync(`./context.js`, generate(contextAST, {minified: true, jsescOption: {"minimal": true}}).code);
-        fs.writeFileSync(`./source.js`, generate(sourceAST, {minified: true}).code);
-        console.log("预处理完毕")
-    } else {
-        throw "不支持的全局加密函数";
-    }
+  if (decryptName) {
+    fs.writeFileSync(`./dist/context.js`, generate(contextAST, {
+      minified: true,
+      jsescOption: { 'minimal': true }
+    }).code)
+    fs.writeFileSync(`./dist/source.js`, generate(sourceAST, { minified: true }).code)
+  } else {
+    throw '不支持的全局加密函数'
+  }
 }
 
+const utils = {
+  prehandler: prehandler,
+  traverse: function (ast: types.Node, config: TraverseOptions) {
+    traverse(ast, config)
+    this.simple1(ast)
+  },
+  simple1: function (ast: types.Node) {
+    // ast = this.mergeObject(ast)
+    // this.simple2(ast)
 
-const _utils = {
-    prehandler: prehandler,
-    traverse: function (ast: Node, config: TraverseOptions) {
-        traverse(ast, config);
-        this.simple1(ast);
-    },
-    mergeObject: function (ast: Node) {
-    },
-    replaceInit: function (ast: Node) {
-        // // 减少调用链路长度
-        // traverse(ast, {
-        //     VariableDeclarator(path) {
-        //         const variableDeclarator = path.node;
-        //         if (types.isObjectExpression(variableDeclarator.init)) {
-        //             const binding = path.scope.getBinding(variableDeclarator.id.name);
-        //             if (binding.referencePaths.length === 1) {
-        //                 let referencePath = binding.referencePaths[0].parentPath;
-        //                 if (types.isVariableDeclarator(referencePath)) {
-        //                     referencePath.replaceWith(types.variableDeclarator(referencePath.node.id, variableDeclarator.init));
-        //                     path.remove();
-        //                 }
-        //             }
-        //         }
-        //     }
-        // })
-        // return ast;
-    },
-    replaceIndenti: function (ast: Node) {
-    },
-    removeEmptyStatement: function (ast: Node) {
-        // 去除空语句
-        traverse(ast, {
-            EmptyStatement(path) {
-                path.remove();
-            }
-        })
-        return ast;
-    },
-    removeUnusedVar: (ast: Node) => {
-    },
-    removeUnusedIf: (ast: Node) => {
-        // 去除无用判断
-        traverse(ast, {
-            Conditional(path) {
-                if (types.isBooleanLiteral(path.node.test) || types.isNumericLiteral(path.node.test)) {
-                    if (path.node.test.value) {
-                        path.replaceInline(path.node.consequent);
-                    } else {
-                        if (path.node.alternate) {
-                            path.replaceInline(path.node.alternate);
-                        } else {
-                            path.remove()
-                        }
-                    }
-                    path.scope.crawl();
-                }
-            }
-        })
-        return ast;
-    },
-    splitCommaToMultiline: (ast: Node) => {
-        // 逗号表达式拆成多行
-        traverse(ast, {
-            SequenceExpression(path) {
-                if (types.isExpressionStatement(path.parentPath.node)) {
-                    const expressions = [];
-                    for (const expression of path.node.expressions) {
-                        expressions.push(expression);
-                    }
-                    path.replaceInline(expressions);
-                } else if(types.isReturnStatement(path.parentPath.node)) {
-                    const expressions = path.node.expressions;
-                    for (let i = 0; i < expressions.length - 1; i++) {
-                        path.parentPath.insertBefore(expressions[i]);
-                    }
-                    path.replaceInline(expressions[expressions.length - 1]);
-                }
-            }
-        })
-        return ast;
-    },
-    evaluate: (ast: Node) => {
-        // 表达式还原
-        traverse(ast, {
-            "NumericLiteral|StringLiteral"(path) {
-                if (path?.node?.extra?.raw) {
-                    delete path.node.extra.raw
-                }
-            },
-            "UnaryExpression|BinaryExpression|CallExpression|ConditionalExpression"(path) {
-                const {confident, value} = path.evaluate()
+    ast = this.flattenCallChain(ast)
+    this.simple2(ast)
+
+    ast = this.inlineFunction(ast)
+    this.simple2(ast)
+
+    ast = this.simpleCall(ast)
+    this.simple2(ast)
+
+    ast = this.simpleClassMethod(ast)
+    this.simple2(ast)
+
+    ast = this.evaluateFunction(ast)
+    this.simple2(ast)
+  },
+  simple2: function (ast: types.Node) {
+    ast = this.removeEmptyStatement(ast)
+    ast = this.splitCommaToMultiline(ast)
+    ast = this.evaluateExpression(ast)
+
+    ast = this.removeUnusedIf(ast)
+    ast = this.removeUnusedVar(ast)
+
+    traverse.cache.clear()
+  },
+
+  mergeObject: function (ast: types.Node) {
+    // 对象合并
+    traverse(ast, {
+      VariableDeclarator (path: any) {
+        if (types.isObjectExpression(path.node.init)) {
+          // path.getAllNextSiblings().filter(s => types.isExpressionStatement(s));
+          for (let expressionStatementPath of path.parentPath.getAllNextSiblings().filter((s: any) => types.isExpressionStatement(s))) {
+            let expression: any = expressionStatementPath.node.expression
+            if (types.isAssignmentExpression(expression) && expression.operator === '=') {
+              const expressionLeft: any = expression.left
+              if (types.isMemberExpression(expression.left) && expressionLeft.object.name === path.node.id.name && types.isIdentifier(expression.left.property)) {
                 try {
-                    if (!confident) {
-                        return;
-                    }
-
-                    if (value === null) {
-                        path.replaceInline(types.nullLiteral())
-                    } else {
-                        if (value === undefined || value.toString() !== path.toString()) {
-                            path.replaceInline(types.valueToNode(value))
-                        }
-                    }
+                  path.node.init.properties.push(types.objectProperty(expressionLeft.property.name, expression.right))
                 } catch (e) {
-                    debugger
+                  path.node.init.properties.push(types.objectProperty(types.stringLiteral(expression.left.property.name), expression.right))
                 }
+                expressionStatementPath.remove()
+              }
             }
-        });
-        return ast;
-    },
+          }
+        }
+      }
+    })
+    return ast
+  },
+  evaluateFunction: function (ast: types.Node) {
+    traverse(ast, {
+      ObjectProperty (path) {
+        const objectDeclarator = path.findParent(p => p.isVariableDeclarator())
+        if (!objectDeclarator?.isVariableDeclarator()) {
+          return
+        }
+        if (!types.isIdentifier(objectDeclarator.node.id)) {
+          return
+        }
+        // 获取对象名
+        const objectName = objectDeclarator.node.id.name
+        // 获取属性名, 支持变量类型和字符串类型
+        const variableKey = types.isIdentifier(path.node.key) ? path.node.key.name : (types.isStringLiteral(path.node.key) ? path.node.key.value : '')
+        // 获取属性值
+        const variableValue = path.node.value
 
-    simple1: function (ast: Node) {
-        this.mergeObject(ast);
-        this.simple2(ast);
+        // 先保证没有此变量只有引用, 没有修改
+        const referencePaths = path.scope.getBinding(objectName)?.referencePaths || []
+        for (const referencePath of referencePaths) {
+          const memberExpression = referencePath.findParent(p => p.isMemberExpression())
+          if (memberExpression && memberExpression.isMemberExpression()) {
+            if (types.isIdentifier(memberExpression.node.object) && memberExpression.node.object.name === objectName) {
+              const memberExpressionProperty = types.isIdentifier(memberExpression.node.property) ? memberExpression.node.property.name :
+                (types.isStringLiteral(memberExpression.node.property) ? memberExpression.node.property.value : '')
+              if (memberExpressionProperty === variableKey) {
+                const updateExpression = memberExpression.findParent(p => p.isUpdateExpression())
+                if (updateExpression) {
+                  return // 不处理i++的情况
+                }
+                const assignmentExpression = memberExpression.findParent(p => p.isAssignmentExpression())
+                if (types.isAssignmentExpression(assignmentExpression?.node) && assignmentExpression?.node.left == memberExpression.node) {
+                  return // 不处理a['b'] = 'xxx'的情况
+                }
+              }
+            }
+          }
+        }
 
-        this.replaceInit(ast);
-        this.simple2(ast);
+        // 再进行替换
+        for (const referencePath of referencePaths) {
+          const memberExpression = referencePath.findParent(p => p.isMemberExpression())
+          if (memberExpression && memberExpression.isMemberExpression()) {
+            if (types.isIdentifier(memberExpression.node.object) && memberExpression.node.object.name === objectName) {
+              const memberExpressionProperty = types.isIdentifier(memberExpression.node.property) ? memberExpression.node.property.name :
+                (types.isStringLiteral(memberExpression.node.property) ? memberExpression.node.property.value : '')
+              if (memberExpressionProperty === variableKey) {
+                if (types.isLiteral(variableValue)) {
+                  memberExpression.replaceInline(variableValue)
+                  memberExpression.scope.crawl()
+                } else if (types.isFunction(variableValue) && referencePath.parentPath?.parentPath?.isCallExpression()) {
+                  const callPath = referencePath.findParent(p => p.isCallExpression())
+                  if (callPath && callPath.isCallExpression() &&
+                    types.isBlockStatement(variableValue.body) && variableValue.body.body.length === 1 && types.isReturnStatement(variableValue.body.body[0])) {
+                    // 函数里的表达式只有一个return, 直接替换
+                    const returnStatement = variableValue.body.body[0].argument
+                    const nodeArguments = callPath.node.arguments
+                    if (types.isBinaryExpression(returnStatement) && nodeArguments.length === 2 &&
+                      types.isExpression(nodeArguments[0]) && types.isExpression(nodeArguments[1])) {
+                      // 二元计算表达式
+                      callPath.replaceInline(types.binaryExpression(returnStatement.operator, nodeArguments[0], nodeArguments[1]))
+                      callPath.scope.crawl()
+                    } else if (types.isLogicalExpression(returnStatement) && nodeArguments.length === 2 &&
+                      types.isExpression(nodeArguments[0]) && types.isExpression(nodeArguments[1])) {
+                      // 逻辑计算表达式
+                      callPath.replaceInline(types.logicalExpression(returnStatement.operator, nodeArguments[0], nodeArguments[1]))
+                      callPath.scope.crawl()
+                    } else if (types.isCallExpression(returnStatement) && types.isIdentifier(returnStatement.callee) &&
+                      types.isExpression(nodeArguments[0])) {
+                      // 函数调用
+                      callPath.replaceInline(types.callExpression(nodeArguments[0], nodeArguments.slice(1)))
+                      callPath.scope.crawl()
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    })
+    return ast
+  },
 
-        this.replaceIndenti(ast);
-        this.simple2(ast);
-    },
-    simple2: function (ast: Node) {
-        traverse.cache.clear()
+  evaluateExpression: (ast: types.Node) => {
+    // 表达式还原
+    traverse(ast, {
+      'NumericLiteral|StringLiteral' (path) {
+        if (path?.node?.extra?.raw) {
+          delete path.node.extra.raw
+        }
+      },
+      'UnaryExpression|BinaryExpression|CallExpression|ConditionalExpression' (path) {
+        try {
+          const {
+            confident,
+            value
+          } = path.evaluate()
+          if (!confident) {
+            return
+          }
 
-        this.removeEmptyStatement(ast);
-        this.splitCommaToMultiline(ast);
-        this.evaluate(ast);
-        this.removeUnusedIf(ast);
-        this.removeUnusedVar(ast);
+          if (value === null) {
+            path.replaceInline(types.nullLiteral())
+          } else {
+            if (value === undefined || value.toString() !== path.toString()) {
+              path.replaceInline(types.valueToNode(value))
+            }
+          }
+        } catch (e) {
+          debugger
+        }
+      }
+    })
+    return ast
+  },
+  flattenCallChain: function (ast: types.Node) {
+    // 减少调用链路长度
+    traverse(ast, {
+      CallExpression (path) {
+        const callPath: types.CallExpression = path.node
+        if (types.isIdentifier(callPath.callee)) {
+          const binding = path.scope.getBinding(callPath.callee.name)
+          if (binding && types.isVariableDeclarator(binding.path.node) && types.isIdentifier(binding.path.node.id) && types.isIdentifier(binding.path.node.init)) {
+            path.replaceWith(types.callExpression(binding.path.node.init, callPath.arguments))
+          }
+        }
+      },
+      VariableDeclarator (path) {
+        const node = path.node
+        if (types.isIdentifier(node.id) && types.isIdentifier(node.init)) {
+          const sourceVar = path.scope.getBinding(node.init.name)?.path?.node
+          if (sourceVar && types.isVariableDeclarator(sourceVar) && types.isObjectExpression(sourceVar.init)) {
+            path.replaceWith(types.variableDeclarator(node.id, sourceVar.init))
+          }
+        }
+      }
+    })
+    return ast
+  },
+  inlineFunction: function (ast: types.Node) {
+    const inline = function (path: NodePath, functionName: string, functionBody: types.FunctionExpression | types.FunctionDeclaration) {
+      if (functionBody.body.body.length !== 1) {
+        return // 方法体只有一个return
+      }
+      const returnStatement = functionBody.body.body[0]
+      if (!types.isReturnStatement(returnStatement)) {
+        return // 方法体只有一个return
+      }
+      // 查找函数引用
+      const binding = path.scope.getBinding(functionName)
+      if (!binding) {
+        return
+      }
+      for (const referencePath of binding.referencePaths) {
+        if (referencePath.parentPath && types.isCallExpression(referencePath.parentPath.node)) {
+          // 修改BinaryExpression
+          if (types.isBinaryExpression(returnStatement.argument) && types.isIdentifier(returnStatement.argument.left) && types.isIdentifier(returnStatement.argument.right)) {
+            if (types.isIdentifier(functionBody.params[0])) {
+              const leftIndex = (functionBody.params[0].name === returnStatement.argument.left.name) ? 0 : 1
+              const rightIndex = (leftIndex === 0) ? 1 : 0
 
-        traverse.cache.clear()
+              const left = referencePath.parentPath.node.arguments[leftIndex]
+              const right = referencePath.parentPath.node.arguments[rightIndex]
+              if (types.isExpression(left) && types.isExpression(right)) {
+                const newNode = types.binaryExpression(returnStatement.argument.operator, left, right)
+                referencePath.parentPath.replaceWith(newNode)
+                referencePath.parentPath.scope.crawl()
+              }
+            }
+          }
+        }
+      }
     }
+
+    traverse(ast, {
+      VariableDeclarator: function (path) {
+        if (types.isIdentifier(path.node.id)) {
+          const functionName = path.node.id.name
+          const functionExpression = path.node.init
+          if (!types.isFunctionExpression(functionExpression)) {
+            return // 查找var inline1 = function () {}
+          }
+          inline(path, functionName, functionExpression)
+        }
+      },
+      FunctionDeclaration: function (path) {
+        if (types.isIdentifier(path.node.id)) {
+          const functionName = path.node.id.name
+          const functionDeclaration = path.node
+          if (!types.isFunctionDeclaration(functionDeclaration)) {
+            return // 查找var inline1 = function () {}
+          }
+          inline(path, functionName, functionDeclaration)
+        }
+      },
+      AssignmentExpression: function (path) {
+        if (!types.isIdentifier(path.node.left)) {
+          return // 只查找 inline1 = function() {}
+        }
+        const functionName = path.node.left.name
+        const functionExpression = path.node.right
+        if (!types.isFunctionExpression(functionExpression)) {
+          return // 查找var inline1 = function () {}
+        }
+        inline(path, functionName, functionExpression)
+      }
+    })
+    return ast
+  },
+  removeEmptyStatement: (ast: types.Node) => {
+    // 去除空语句
+    traverse(ast, {
+      EmptyStatement (path) {
+        path.remove()
+      }
+    })
+    return ast
+  },
+  removeUnusedVar: (ast: types.Node) => {
+    let flag = true
+    while (flag) {
+      flag = false
+      // 去除无用变量
+      traverse(ast, {
+        VariableDeclarator (path) {
+          if (types.isIdentifier(path.node.id)) {
+            const binding = path.scope.getBinding(path.node.id.name)
+
+            // 如标识符被修改过，则不能进行删除动作。
+            if (!binding || binding.constantViolations.length > 0) {
+              return
+            }
+            const pp = path.parentPath.parentPath
+            if (pp) {
+              const ppNode = pp.node
+              if (types.isForOfStatement(ppNode) || types.isForInStatement(ppNode) || types.isForStatement(ppNode)) {
+                return
+              }
+            }
+
+            // 未被引用
+            if (!binding.referenced) {
+              flag = true
+              path.remove()
+            }
+
+            // 被引用次数为0
+            // if (binding.references === 0) {
+            //     path.remove();
+            // }
+
+            // 长度为0，变量没有被引用过
+            // if (binding.referencePaths.length === 0) {
+            //     path.remove();
+            // }
+          }
+        }
+      })
+      traverse.cache.clear()
+    }
+    return ast
+  },
+  removeUnusedIf: (ast: types.Node) => {
+    // 去除无用判断
+    traverse(ast, {
+      Conditional (path) {
+        if (types.isBooleanLiteral(path.node.test) || types.isNumericLiteral(path.node.test)) {
+          if (path.node.test.value) {
+            path.replaceInline(path.node.consequent)
+          } else {
+            if (path.node.alternate) {
+              path.replaceInline(path.node.alternate)
+            } else {
+              path.remove()
+            }
+          }
+          path.scope.crawl()
+        }
+      }
+    })
+    return ast
+  },
+  simpleCall: (ast: types.Node) => {
+    traverse(ast, {
+      'MemberExpression|OptionalMemberExpression' (path: any) {
+        const node = path.node
+        if (node.computed && types.isStringLiteral(node.property)) {
+          const value = node.property?.extra?.rawValue || node.property.value
+          if (value.indexOf('-') < 0) {
+            node.property = types.identifier(value)
+            node.computed = false
+          }
+        }
+      }
+    })
+    return ast
+  },
+  simpleClassMethod: function (ast: types.Node) {
+    traverse(ast, {
+      ClassMethod (path) {
+        path.node.computed = false
+        if (types.isStringLiteral(path.node.key)) {
+          const newKey = types.identifier(path.node.key.value)
+          path.get('key').replaceWith(newKey)
+        }
+      },
+      ObjectProperty (path) {
+        const node = path.node
+        path.node.computed = false
+        if (types.isIdentifier(path.node.key)) {
+          node.key = types.stringLiteral(path.node.key.name)
+        }
+      },
+    })
+    return ast
+  },
+  splitCommaToMultiline: (ast: types.Node) => {
+    // 逗号表达式拆成多行
+    traverse(ast, {
+      SequenceExpression (path) {
+        if (types.isExpressionStatement(path.parentPath.node)) {
+          const expressions = []
+          for (const expression of path.node.expressions) {
+            expressions.push(expression)
+          }
+          path.replaceInline(expressions)
+        } else if (types.isReturnStatement(path.parentPath.node)) {
+          const expressions = path.node.expressions
+          for (let i = 0; i < expressions.length - 1; i++) {
+            path.parentPath.insertBefore(expressions[i])
+          }
+          path.replaceInline(expressions[expressions.length - 1])
+        }
+      },
+      'VariableDeclaration' (path) {
+        if (!path.parentPath.isBlock()) {
+          return // 避免 for(var i = 0, j = 0;;) 被处理
+        }
+        if (path.node.declarations.length === 1) {
+          return // 跳过只有一个变量的
+        }
+        const newVars = path.node.declarations.map(v => types.variableDeclaration(path.node.kind, [v]))
+        path.replaceInline(newVars)
+      }
+    })
+    return ast
+  },
+  whileSwitch: (ast: types.Node) => {
+    traverse(ast, {
+      WhileStatement (path) {
+        if(!types.isBlockStatement(path.node.body)) {
+          return
+        }
+        // 获取下面的switch节点
+        let switchStatement = path.node.body.body[0]
+        // 获取Switch判断条件上的 控制的数组名 和 自增变量名
+        if(!types.isSwitchStatement(switchStatement) || !types.isMemberExpression(switchStatement.discriminant) ||
+          !types.isIdentifier(switchStatement.discriminant.object) ||
+          !types.isUpdateExpression(switchStatement.discriminant.property) || !types.isIdentifier(switchStatement.discriminant.property.argument)) {
+          return // 必须满足 switch(arr[idx]++) 的情况
+        }
+        let arrayName = switchStatement.discriminant.object.name
+        let increName = switchStatement.discriminant.property.argument.name
+        // 获取控制流数组和自增变量的绑定对象
+        let bindingArray = path.scope.getBinding(arrayName)
+        if(!bindingArray) {
+          return;
+        }
+        let bindingAutoIncrement = path.scope.getBinding(increName)
+        if(!bindingAutoIncrement) {
+          return;
+        }
+        // 计算出对应的顺序数组
+        let array = eval(bindingArray.path.get('init').toString())
+        let replace = array.flatMap((i: any) => {
+          let consequent = switchStatement.cases[i].consequent
+          // 删除末尾的continue节点
+          if (types.isContinueStatement(consequent[consequent.length - 1])) consequent.pop()
+          return consequent
+        })
+        path.replaceWithMultiple(replace)
+        // 删除控制数组和对应的自增变量
+        bindingArray.path.remove()
+        bindingAutoIncrement.path.remove()
+      }
+    })
+    return ast
+  }
 }
 
-export default _utils;
+export default utils
