@@ -1,19 +1,20 @@
-import * as types from '@babel/types'
-import traverse, { NodePath, TraverseOptions } from '@babel/traverse'
-import * as parser from '@babel/parser'
-import fs from 'fs'
-import generate from '@babel/generator'
+const types = require("@babel/types");
+const traverse = require('@babel/traverse').default;
+const parser = require('@babel/parser');
+const fs = require('fs');
+const generate = require('@babel/generator').default;
 
-function prehandler (code: string) {
+
+function prehandler (code) {
   const sourceAST = parser.parse(code, {
     allowReturnOutsideFunction: true
   })
-  const contextASTBody: types.Statement[] = []
+  const contextASTBody = []
   const contextAST = types.program(contextASTBody)
 
   let decryptName = ''
 
-  // jsjiami.com.v5.js特征: 超长数组, 被引用2次, 一次作为形参，一次作为变量
+  // jsjiami.com.v5.js特征: 全局超长数组, 被引用2次, 一次作为形参，一次作为变量
   if (decryptName === '') {
     traverse(sourceAST, {
       VariableDeclarator (path) {
@@ -78,7 +79,7 @@ function prehandler (code: string) {
     })
   }
 
-  // jsjiami.com.v6.js特征: 超长数组, 被引用4次, 一次作为形参，一次作为变量
+  // jsjiami.com.v6.js特征: 全局超长数组, 被引用4次, 一次作为形参，一次作为变量
   if (decryptName === '') {
     traverse(sourceAST, {
       VariableDeclarator (path) {
@@ -148,9 +149,9 @@ function prehandler (code: string) {
   if (decryptName === '') {
     traverse(sourceAST, {
       ArrayExpression (path) {
-        if(path.parentPath.isReturnStatement() && path.node.elements.length > 25) {
-          // 词典
-          const obfuscateDictPath = path.findParent(p => p.isFunctionDeclaration());
+        // 词典
+        const obfuscateDictPath = path.findParent(p => p.isFunctionDeclaration());
+        if(obfuscateDictPath && path.node.elements.length > 25) {
           if(!obfuscateDictPath?.isFunctionDeclaration()) {
             console.log('超长数组不在函数的包裹下, 不满足jsjiami.com.v7.js特征')
             return;
@@ -429,13 +430,13 @@ function prehandler (code: string) {
 
 const utils = {
   prehandler: prehandler,
-  traverse: function (ast: types.Node, config: TraverseOptions) {
+  traverse: function (ast, config) {
     traverse(ast, config)
     this.simple1(ast)
   },
-  simple1: function (ast: types.Node) {
-    // ast = this.mergeObject(ast)
-    // this.simple2(ast)
+  simple1: function (ast) {
+    ast = this.mergeObject(ast)
+    this.simple2(ast)
 
     ast = this.flattenCallChain(ast)
     this.simple2(ast)
@@ -452,127 +453,19 @@ const utils = {
     ast = this.evaluateFunction(ast)
     this.simple2(ast)
   },
-  simple2: function (ast: types.Node) {
-    ast = this.removeEmptyStatement(ast)
+  simple2: function (ast) {
     ast = this.splitCommaToMultiline(ast)
     ast = this.evaluateExpression(ast)
 
+    ast = this.removeDoubleBlock(ast)
+    ast = this.removeEmptyStatement(ast)
     ast = this.removeUnusedIf(ast)
     ast = this.removeUnusedVar(ast)
 
     traverse.cache.clear()
   },
 
-  mergeObject: function (ast: types.Node) {
-    // 对象合并
-    traverse(ast, {
-      VariableDeclarator (path: any) {
-        if (types.isObjectExpression(path.node.init)) {
-          // path.getAllNextSiblings().filter(s => types.isExpressionStatement(s));
-          for (let expressionStatementPath of path.parentPath.getAllNextSiblings().filter((s: any) => types.isExpressionStatement(s))) {
-            let expression: any = expressionStatementPath.node.expression
-            if (types.isAssignmentExpression(expression) && expression.operator === '=') {
-              const expressionLeft: any = expression.left
-              if (types.isMemberExpression(expression.left) && expressionLeft.object.name === path.node.id.name && types.isIdentifier(expression.left.property)) {
-                try {
-                  path.node.init.properties.push(types.objectProperty(expressionLeft.property.name, expression.right))
-                } catch (e) {
-                  path.node.init.properties.push(types.objectProperty(types.stringLiteral(expression.left.property.name), expression.right))
-                }
-                expressionStatementPath.remove()
-              }
-            }
-          }
-        }
-      }
-    })
-    return ast
-  },
-  evaluateFunction: function (ast: types.Node) {
-    traverse(ast, {
-      ObjectProperty (path) {
-        const objectDeclarator = path.findParent(p => p.isVariableDeclarator())
-        if (!objectDeclarator?.isVariableDeclarator()) {
-          return
-        }
-        if (!types.isIdentifier(objectDeclarator.node.id)) {
-          return
-        }
-        // 获取对象名
-        const objectName = objectDeclarator.node.id.name
-        // 获取属性名, 支持变量类型和字符串类型
-        const variableKey = types.isIdentifier(path.node.key) ? path.node.key.name : (types.isStringLiteral(path.node.key) ? path.node.key.value : '')
-        // 获取属性值
-        const variableValue = path.node.value
-
-        // 先保证没有此变量只有引用, 没有修改
-        const referencePaths = path.scope.getBinding(objectName)?.referencePaths || []
-        for (const referencePath of referencePaths) {
-          const memberExpression = referencePath.findParent(p => p.isMemberExpression())
-          if (memberExpression && memberExpression.isMemberExpression()) {
-            if (types.isIdentifier(memberExpression.node.object) && memberExpression.node.object.name === objectName) {
-              const memberExpressionProperty = types.isIdentifier(memberExpression.node.property) ? memberExpression.node.property.name :
-                (types.isStringLiteral(memberExpression.node.property) ? memberExpression.node.property.value : '')
-              if (memberExpressionProperty === variableKey) {
-                const updateExpression = memberExpression.findParent(p => p.isUpdateExpression())
-                if (updateExpression) {
-                  return // 不处理i++的情况
-                }
-                const assignmentExpression = memberExpression.findParent(p => p.isAssignmentExpression())
-                if (types.isAssignmentExpression(assignmentExpression?.node) && assignmentExpression?.node.left == memberExpression.node) {
-                  return // 不处理a['b'] = 'xxx'的情况
-                }
-              }
-            }
-          }
-        }
-
-        // 再进行替换
-        for (const referencePath of referencePaths) {
-          const memberExpression = referencePath.findParent(p => p.isMemberExpression())
-          if (memberExpression && memberExpression.isMemberExpression()) {
-            if (types.isIdentifier(memberExpression.node.object) && memberExpression.node.object.name === objectName) {
-              const memberExpressionProperty = types.isIdentifier(memberExpression.node.property) ? memberExpression.node.property.name :
-                (types.isStringLiteral(memberExpression.node.property) ? memberExpression.node.property.value : '')
-              if (memberExpressionProperty === variableKey) {
-                if (types.isLiteral(variableValue)) {
-                  memberExpression.replaceInline(variableValue)
-                  memberExpression.scope.crawl()
-                } else if (types.isFunction(variableValue) && referencePath.parentPath?.parentPath?.isCallExpression()) {
-                  const callPath = referencePath.findParent(p => p.isCallExpression())
-                  if (callPath && callPath.isCallExpression() &&
-                    types.isBlockStatement(variableValue.body) && variableValue.body.body.length === 1 && types.isReturnStatement(variableValue.body.body[0])) {
-                    // 函数里的表达式只有一个return, 直接替换
-                    const returnStatement = variableValue.body.body[0].argument
-                    const nodeArguments = callPath.node.arguments
-                    if (types.isBinaryExpression(returnStatement) && nodeArguments.length === 2 &&
-                      types.isExpression(nodeArguments[0]) && types.isExpression(nodeArguments[1])) {
-                      // 二元计算表达式
-                      callPath.replaceInline(types.binaryExpression(returnStatement.operator, nodeArguments[0], nodeArguments[1]))
-                      callPath.scope.crawl()
-                    } else if (types.isLogicalExpression(returnStatement) && nodeArguments.length === 2 &&
-                      types.isExpression(nodeArguments[0]) && types.isExpression(nodeArguments[1])) {
-                      // 逻辑计算表达式
-                      callPath.replaceInline(types.logicalExpression(returnStatement.operator, nodeArguments[0], nodeArguments[1]))
-                      callPath.scope.crawl()
-                    } else if (types.isCallExpression(returnStatement) && types.isIdentifier(returnStatement.callee) &&
-                      types.isExpression(nodeArguments[0])) {
-                      // 函数调用
-                      callPath.replaceInline(types.callExpression(nodeArguments[0], nodeArguments.slice(1)))
-                      callPath.scope.crawl()
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    })
-    return ast
-  },
-
-  evaluateExpression: (ast: types.Node) => {
+  evaluateExpression: (ast) => {
     // 表达式还原
     traverse(ast, {
       'NumericLiteral|StringLiteral' (path) {
@@ -604,11 +497,94 @@ const utils = {
     })
     return ast
   },
-  flattenCallChain: function (ast: types.Node) {
+  evaluateFunction: function (ast) {
+    traverse(ast, {
+      ObjectProperty (path) {
+        const objectDeclarator = path.findParent(p => p.isVariableDeclarator())
+        if (!objectDeclarator?.isVariableDeclarator()) {
+          return
+        }
+        if (!types.isIdentifier(objectDeclarator.node.id)) {
+          return
+        }
+        // 获取对象名
+        const objectName = objectDeclarator.node.id.name
+        // 获取属性名, 支持变量类型和字符串类型
+        const variableKey = types.isIdentifier(path.node.key) ? path.node.key.name : (types.isStringLiteral(path.node.key) ? path.node.key.value : '')
+        // 获取属性值
+        const variableValue = path.node.value
+
+        // 先保证没有此变量只有引用, 没有修改
+        const referencePaths = path.scope.getBinding(objectName)?.referencePaths || []
+        for (const referencePath of referencePaths) {
+          const memberExpression = referencePath.findParent(p => p.isMemberExpression())
+          if (memberExpression && memberExpression.isMemberExpression()) {
+            if (types.isIdentifier(memberExpression.node.object) && memberExpression.node.object.name === objectName) {
+              const memberExpressionProperty = types.isIdentifier(memberExpression.node.property) ? memberExpression.node.property.name :
+                  (types.isStringLiteral(memberExpression.node.property) ? memberExpression.node.property.value : '')
+              if (memberExpressionProperty === variableKey) {
+                const updateExpression = memberExpression.findParent(p => p.isUpdateExpression())
+                if (updateExpression) {
+                  return // 不处理i++的情况
+                }
+                const assignmentExpression = memberExpression.findParent(p => p.isAssignmentExpression())
+                if (types.isAssignmentExpression(assignmentExpression?.node) && assignmentExpression?.node.left == memberExpression.node) {
+                  return // 不处理a['b'] = 'xxx'的情况
+                }
+              }
+            }
+          }
+        }
+
+        // 再进行替换
+        for (const referencePath of referencePaths) {
+          const memberExpression = referencePath.findParent(p => p.isMemberExpression())
+          if (memberExpression && memberExpression.isMemberExpression()) {
+            if (types.isIdentifier(memberExpression.node.object) && memberExpression.node.object.name === objectName) {
+              const memberExpressionProperty = types.isIdentifier(memberExpression.node.property) ? memberExpression.node.property.name :
+                  (types.isStringLiteral(memberExpression.node.property) ? memberExpression.node.property.value : '')
+              if (memberExpressionProperty === variableKey) {
+                if (types.isLiteral(variableValue)) {
+                  memberExpression.replaceInline(variableValue)
+                  memberExpression.scope.crawl()
+                } else if (types.isFunction(variableValue) && referencePath.parentPath?.parentPath?.isCallExpression()) {
+                  const callPath = referencePath.findParent(p => p.isCallExpression())
+                  if (callPath && callPath.isCallExpression() &&
+                      types.isBlockStatement(variableValue.body) && variableValue.body.body.length === 1 && types.isReturnStatement(variableValue.body.body[0])) {
+                    // 函数里的表达式只有一个return, 直接替换
+                    const returnStatement = variableValue.body.body[0].argument
+                    const nodeArguments = callPath.node.arguments
+                    if (types.isBinaryExpression(returnStatement) && nodeArguments.length === 2 &&
+                        types.isExpression(nodeArguments[0]) && types.isExpression(nodeArguments[1])) {
+                      // 二元计算表达式
+                      callPath.replaceInline(types.binaryExpression(returnStatement.operator, nodeArguments[0], nodeArguments[1]))
+                      callPath.scope.crawl()
+                    } else if (types.isLogicalExpression(returnStatement) && nodeArguments.length === 2 &&
+                        types.isExpression(nodeArguments[0]) && types.isExpression(nodeArguments[1])) {
+                      // 逻辑计算表达式
+                      callPath.replaceInline(types.logicalExpression(returnStatement.operator, nodeArguments[0], nodeArguments[1]))
+                      callPath.scope.crawl()
+                    } else if (types.isCallExpression(returnStatement) && types.isIdentifier(returnStatement.callee) &&
+                        types.isExpression(nodeArguments[0])) {
+                      // 函数调用
+                      callPath.replaceInline(types.callExpression(nodeArguments[0], nodeArguments.slice(1)))
+                      callPath.scope.crawl()
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    })
+    return ast
+  },
+  flattenCallChain: function (ast) {
     // 减少调用链路长度
     traverse(ast, {
       CallExpression (path) {
-        const callPath: types.CallExpression = path.node
+        const callPath = path.node
         if (types.isIdentifier(callPath.callee)) {
           const binding = path.scope.getBinding(callPath.callee.name)
           if (binding && types.isVariableDeclarator(binding.path.node) && types.isIdentifier(binding.path.node.id) && types.isIdentifier(binding.path.node.init)) {
@@ -628,8 +604,8 @@ const utils = {
     })
     return ast
   },
-  inlineFunction: function (ast: types.Node) {
-    const inline = function (path: NodePath, functionName: string, functionBody: types.FunctionExpression | types.FunctionDeclaration) {
+  inlineFunction: function (ast) {
+    const inline = function (path, functionName, functionBody) {
       if (functionBody.body.body.length !== 1) {
         return // 方法体只有一个return
       }
@@ -698,7 +674,50 @@ const utils = {
     })
     return ast
   },
-  removeEmptyStatement: (ast: types.Node) => {
+  mergeObject: function (ast) {
+    // 对象合并
+    traverse(ast, {
+      VariableDeclarator (path) {
+        if (types.isObjectExpression(path.node.init)) {
+          // path.getAllNextSiblings().filter(s => types.isExpressionStatement(s));
+          for (let expressionStatementPath of path.parentPath.getAllNextSiblings().filter(s => types.isExpressionStatement(s))) {
+            let expression = expressionStatementPath.node.expression
+            if (types.isAssignmentExpression(expression) && expression.operator === '=') {
+              const expressionLeft = expression.left
+              if (types.isMemberExpression(expression.left) && expressionLeft.object.name === path.node.id.name && types.isIdentifier(expression.left.property)) {
+                try {
+                  path.node.init.properties.push(types.objectProperty(expressionLeft.property.name, expression.right))
+                } catch (e) {
+                  path.node.init.properties.push(types.objectProperty(types.stringLiteral(expression.left.property.name), expression.right))
+                }
+                expressionStatementPath.remove()
+              }
+            }
+          }
+        }
+      }
+    })
+    return ast
+  },
+  removeDoubleBlock: (ast) => {
+    traverse(ast, {
+      BlockStatement (path) {
+        if (path.node.body.length === 1 && types.isBlockStatement(path.node.body[0])) {
+          const innerBlock = path.node.body[0];
+
+          if (types.isFunction(path.parentPath.node) || types.isLoop(path.parentPath.node) || types.isConditional(path.parentPath.node)) {
+            path.replaceWithMultiple(innerBlock.body);
+          } else {
+            path.replaceWith(types.blockStatement(innerBlock.body));
+          }
+
+          path.scope.crawl();
+        }
+      }
+    })
+    return ast
+  },
+  removeEmptyStatement: (ast) => {
     // 去除空语句
     traverse(ast, {
       EmptyStatement (path) {
@@ -707,7 +726,27 @@ const utils = {
     })
     return ast
   },
-  removeUnusedVar: (ast: types.Node) => {
+  removeUnusedIf: (ast) => {
+    // 去除无用判断
+    traverse(ast, {
+      Conditional (path) {
+        if (types.isBooleanLiteral(path.node.test) || types.isNumericLiteral(path.node.test)) {
+          if (path.node.test.value) {
+            path.replaceInline(path.node.consequent)
+          } else {
+            if (path.node.alternate) {
+              path.replaceInline(path.node.alternate)
+            } else {
+              path.remove()
+            }
+          }
+          path.scope.crawl()
+        }
+      }
+    })
+    return ast
+  },
+  removeUnusedVar: (ast) => {
     let flag = true
     while (flag) {
       flag = false
@@ -751,29 +790,9 @@ const utils = {
     }
     return ast
   },
-  removeUnusedIf: (ast: types.Node) => {
-    // 去除无用判断
+  simpleCall: (ast) => {
     traverse(ast, {
-      Conditional (path) {
-        if (types.isBooleanLiteral(path.node.test) || types.isNumericLiteral(path.node.test)) {
-          if (path.node.test.value) {
-            path.replaceInline(path.node.consequent)
-          } else {
-            if (path.node.alternate) {
-              path.replaceInline(path.node.alternate)
-            } else {
-              path.remove()
-            }
-          }
-          path.scope.crawl()
-        }
-      }
-    })
-    return ast
-  },
-  simpleCall: (ast: types.Node) => {
-    traverse(ast, {
-      'MemberExpression|OptionalMemberExpression' (path: any) {
+      'MemberExpression|OptionalMemberExpression' (path) {
         const node = path.node
         if (node.computed && types.isStringLiteral(node.property)) {
           const value = node.property?.extra?.rawValue || node.property.value
@@ -786,7 +805,7 @@ const utils = {
     })
     return ast
   },
-  simpleClassMethod: function (ast: types.Node) {
+  simpleClassMethod: function (ast) {
     traverse(ast, {
       ClassMethod (path) {
         path.node.computed = false
@@ -805,7 +824,7 @@ const utils = {
     })
     return ast
   },
-  splitCommaToMultiline: (ast: types.Node) => {
+  splitCommaToMultiline: (ast) => {
     // 逗号表达式拆成多行
     traverse(ast, {
       SequenceExpression (path) {
@@ -836,7 +855,7 @@ const utils = {
     })
     return ast
   },
-  whileSwitch: (ast: types.Node) => {
+  whileSwitch: (ast) => {
     traverse(ast, {
       WhileStatement (path) {
         if(!types.isBlockStatement(path.node.body)) {
@@ -863,7 +882,7 @@ const utils = {
         }
         // 计算出对应的顺序数组
         let array = eval(bindingArray.path.get('init').toString())
-        let replace = array.flatMap((i: any) => {
+        let replace = array.flatMap(i => {
           let consequent = switchStatement.cases[i].consequent
           // 删除末尾的continue节点
           if (types.isContinueStatement(consequent[consequent.length - 1])) consequent.pop()
@@ -879,4 +898,4 @@ const utils = {
   }
 }
 
-export default utils
+module.exports = utils;

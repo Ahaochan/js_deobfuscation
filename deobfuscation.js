@@ -1,7 +1,7 @@
 // 预处理
-const fs = require("fs");
+const fs = require('fs');
+const astUtils = require('./src/utils')
 const sourceCode = fs.readFileSync("./dist/source.js").toString();
-const astUtils = require('./src/utils-old');
 astUtils.prehandler(sourceCode);
 
 // AST语法树解析 https://astexplorer.net/
@@ -15,11 +15,6 @@ const generate = require("@babel/generator").default
 const traverse = require("@babel/traverse").default
 const types = require("@babel/types");
 const {decrypt} = require('./dist/context')
-
-
-
-const {re} = require("@babel/core/lib/vendor/import-meta-resolve");
-const {functionCommon} = require("@babel/types/lib/definitions/core");
 
 const code = fs.readFileSync("./dist/source.js").toString();
 const ast = parser.parse(code, {
@@ -132,7 +127,7 @@ console.log("全局加密函数，处理完毕")
 
 // 去除死代码
 if (true) {
-    traverse(ast, {
+    astUtils.traverse(ast, {
         ExpressionStatement: function (path) {
             var node = path.node;
             if (!types.isCallExpression(node.expression) || !types.isFunctionExpression(node.expression.callee))
@@ -147,46 +142,7 @@ if (true) {
     fs.writeFileSync(`./target2.js`, generate(ast, {jsescOption: {"minimal": true}}).code);
 
     // 去除while代码
-    astUtils.traverse(ast, {
-        WhileStatement: function (path) {
-            const node = path.node;
-            let case_fun_list = []
-
-            // 判断是否是需要处理的while节点
-            if (node.test.value && types.isBlockStatement(node.body)) {
-                const switchStatements = node.body.body;
-                const switchStatement = switchStatements[0];
-                const breakStatement = switchStatements[1];
-                if (types.isSwitchStatement(switchStatement) && types.isMemberExpression(switchStatement.discriminant) && types.isBreakStatement(breakStatement)) {
-                    const sortedNumberVariableName = switchStatement.discriminant.object.name;
-                    const sortedNumberVariableValue = path.getAllPrevSiblings()
-                        .filter(p => types.isVariableDeclaration(p))
-                        .map(s => s.node.declarations)
-                        .flat()
-                        .filter(s => s.id.name === sortedNumberVariableName)[0];
-
-
-
-                    const caseSortedList = types.isCallExpression(sortedNumberVariableValue.init) && types.isStringLiteral(sortedNumberVariableValue.init.callee.object) ? sortedNumberVariableValue.init.callee.object.value.split("|") :
-                        (types.isArrayExpression(sortedNumberVariableValue.init) ? sortedNumberVariableValue.init.elements.map(e => e.value) : null);
-                    if(!!caseSortedList) {
-                        const caseList = switchStatement.cases
-                        for (const caseIndex of caseSortedList) {
-                            const caseBody = caseList[caseIndex].consequent;
-                            for (const s of caseBody) {
-                                if (types.isContinueStatement(s)) {
-                                    break;
-                                }
-                                case_fun_list.push(s);
-                            }
-                        }
-                        path.replaceWithMultiple(case_fun_list);
-                        path.getAllPrevSiblings().forEach(p => p.remove());
-                    }
-                }
-            }
-        }
-    })
+    astUtils.whileSwitch(ast);
     fs.writeFileSync(`./target3.js`, generate(ast, {jsescOption: {"minimal": true}}).code);
     console.log("去除while代码，处理完毕")
 }

@@ -1,7 +1,7 @@
-import utils from '../src/utils'
-import fs from 'fs'
-import generate from '@babel/generator'
-import * as parser from '@babel/parser'
+const utils = require('../src/utils')
+const fs = require('fs');
+const generate = require('@babel/generator').default;
+const parser = require('@babel/parser');
 
 (function main() {
   const astConfig = {
@@ -12,79 +12,93 @@ import * as parser from '@babel/parser'
   // const ast = testEvaluateFunction(astConfig);
   // const ast = testFlattenCallChain(astConfig);
   // const ast = testInlineFunction(astConfig);
+  // const ast = testMergeObject(astConfig);
+  const ast = testRemoveDoubleBlock(astConfig);
   // const ast = testRemoveEmptyStatement(astConfig);
   // const ast = testRemoveUnusedIf(astConfig);
   // const ast = testRemoveUnusedVar(astConfig);
   // const ast = testSimpleCall(astConfig);
   // const ast = testSimpleClassMethod(astConfig);
   // const ast = testSplitCommaToMultiline(astConfig);
-  const ast = testWhileSwitch(astConfig);
+  // const ast = testWhileSwitch(astConfig);
 
   fs.writeFileSync(`./output.js`, generate(ast, {jsescOption: {minimal: true}}).code);
   console.log("处理完毕");
 })();
 
-function testEvaluateExpression(astConfig: parser.ParserOptions) {
+function testEvaluateExpression(astConfig) {
   const code = fs.readFileSync("../example/evaluateExpression.js").toString();
   const ast = parser.parse(code, astConfig);
   return utils.evaluateExpression(ast);
 }
 
-function testEvaluateFunction(astConfig: parser.ParserOptions) {
+function testEvaluateFunction(astConfig) {
   const code = fs.readFileSync("../example/evaluateFunction.js").toString();
   const ast = parser.parse(code, astConfig);
   return utils.evaluateFunction(ast);
 }
 
-function testFlattenCallChain(astConfig: parser.ParserOptions) {
+function testFlattenCallChain(astConfig) {
   const code = fs.readFileSync("../example/flattenCallChain.js").toString();
   const ast = parser.parse(code, astConfig);
   return utils.flattenCallChain(ast);
 }
 
-function testInlineFunction(astConfig: parser.ParserOptions) {
+function testInlineFunction(astConfig) {
   const code = fs.readFileSync("../example/inlineFunction.js").toString();
   const ast = parser.parse(code, astConfig);
   return utils.inlineFunction(ast);
 }
 
-function testRemoveEmptyStatement(astConfig: parser.ParserOptions) {
+function testMergeObject(astConfig) {
+  const code = fs.readFileSync("../example/mergeObject.js").toString();
+  const ast = parser.parse(code, astConfig);
+  return utils.mergeObject(ast);
+}
+
+function testRemoveDoubleBlock(astConfig) {
+  const code = fs.readFileSync("../example/removeDoubleBlock.js").toString();
+  const ast = parser.parse(code, astConfig);
+  return utils.removeDoubleBlock(ast);
+}
+
+function testRemoveEmptyStatement(astConfig) {
   const code = fs.readFileSync("../example/removeEmptyStatement.js").toString();
   const ast = parser.parse(code, astConfig);
   return utils.removeEmptyStatement(ast);
 }
 
-function testRemoveUnusedIf(astConfig: parser.ParserOptions) {
+function testRemoveUnusedIf(astConfig) {
   const code = fs.readFileSync("../example/removeUnusedIf.js").toString();
   const ast = parser.parse(code, astConfig);
   return utils.removeUnusedIf(ast);
 }
 
-function testRemoveUnusedVar(astConfig: parser.ParserOptions) {
+function testRemoveUnusedVar(astConfig) {
   const code = fs.readFileSync("../example/removeUnusedVar.js").toString();
   const ast = parser.parse(code, astConfig);
   return utils.removeUnusedVar(ast);
 }
 
-function testSimpleCall(astConfig: parser.ParserOptions) {
+function testSimpleCall(astConfig) {
   const code = fs.readFileSync("../example/simpleCall.js").toString();
   const ast = parser.parse(code, astConfig);
   return utils.simpleCall(ast);
 }
 
-function testSimpleClassMethod(astConfig: parser.ParserOptions) {
+function testSimpleClassMethod(astConfig) {
   const code = fs.readFileSync("../example/simpleClassMethod.js").toString();
   const ast = parser.parse(code, astConfig);
   return utils.simpleClassMethod(ast);
 }
 
-function testSplitCommaToMultiline(astConfig: parser.ParserOptions) {
+function testSplitCommaToMultiline(astConfig) {
   const code = fs.readFileSync("../example/splitCommaToMultiline.js").toString();
   const ast = parser.parse(code, astConfig);
   return utils.splitCommaToMultiline(ast);
 }
 
-function testWhileSwitch(astConfig: parser.ParserOptions) {
+function testWhileSwitch(astConfig) {
   const code = fs.readFileSync("../example/whileSwitch.js").toString();
   const ast = parser.parse(code, astConfig);
   return utils.whileSwitch(ast);
