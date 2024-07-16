@@ -35,8 +35,8 @@ function prehandler (code) {
             console.log(`path.node.id.name的引用关系为${referencePaths.length}, 不满足jsjiami.com.v5.js特征`)
             return
           }
-          for (let i = 0; i < path.node.elements.length; i++) {
-            const element = path.node.elements[i];
+          for (let i = 0; i < path.node.init.elements.length; i++) {
+            const element = path.node.init.elements[i];
             if(types.isIdentifier(element)) {
               let binding = path.scope.getBinding(element.name);
               if (binding && types.isVariableDeclarator(binding.path.node)) {
