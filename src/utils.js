@@ -730,13 +730,11 @@ const utils = {
       BlockStatement (path) {
         if (path.node.body.length === 1 && types.isBlockStatement(path.node.body[0])) {
           const innerBlock = path.node.body[0];
-
-          if (types.isFunction(path.parentPath.node) || types.isLoop(path.parentPath.node) || types.isConditional(path.parentPath.node)) {
-            path.replaceWithMultiple(innerBlock.body);
-          } else {
+          try {
             path.replaceWith(types.blockStatement(innerBlock.body));
+          } catch (e) {
+            path.node.body = innerBlock.body;
           }
-
           path.scope.crawl();
         }
       }

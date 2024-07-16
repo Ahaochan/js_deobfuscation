@@ -12,3 +12,12 @@ function fun() {{console.log('1');}{console.log('2');}{console.log('3');}}
 var fun = function (){{console.log('1');console.log('2');console.log('3');}}
 var fun = function (){{{{console.log('1');console.log('2');console.log('3');}}}}
 var fun = function (){{console.log('1');}{console.log('2');}{console.log('3');}}
+
+try {{
+    fun();
+    if (true) {console.log('1');}
+}} catch (e) {{console.log('2');}} finally {{console.log('3');}}
+try {{{
+    fun();
+    if (true) {console.log('1');}
+}}} catch (e) {{{console.log('2');}}} finally {{{console.log('3');}}}
