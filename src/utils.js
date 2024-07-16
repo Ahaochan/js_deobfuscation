@@ -35,6 +35,15 @@ function prehandler (code) {
             console.log(`path.node.id.name的引用关系为${referencePaths.length}, 不满足jsjiami.com.v5.js特征`)
             return
           }
+          for (let i = 0; i < path.node.elements.length; i++) {
+            const element = path.node.elements[i];
+            if(types.isIdentifier(element)) {
+              let binding = path.scope.getBinding(element.name);
+              if (binding && types.isVariableDeclarator(binding.path.node)) {
+                contextAST.body.push(binding.path.parentPath.node) // 数组依赖变量
+              }
+            }
+          }
           // 词典
           let obfuscateDictPath = path.parentPath
           let decryptTypePath = null
@@ -63,7 +72,7 @@ function prehandler (code) {
               }
             }
           }
-          if (contextAST.body.length === 3 && obfuscateDictPath && decryptTypePath &&
+          if (contextAST.body.length >= 3 && obfuscateDictPath && decryptTypePath &&
             decryptFunPath?.isVariableDeclaration() && types.isIdentifier(decryptFunPath.node.declarations[0].id)) {
             console.log('加密方式: 符合jsjiami.com.v5.js特征')
             decryptName = decryptFunPath.node.declarations[0].id.name
@@ -100,6 +109,15 @@ function prehandler (code) {
             console.log(`path.node.id.name的引用关系为${referencePaths.length}, 不满足jsjiami.com.v6.js特征`)
             return
           }
+          for (let i = 0; i < path.node.elements.length; i++) {
+            const element = path.node.elements[i];
+            if(types.isIdentifier(element)) {
+              let binding = path.scope.getBinding(element.name);
+              if (binding && types.isVariableDeclarator(binding.path.node)) {
+                contextAST.body.push(binding.path.parentPath.node) // 数组依赖变量
+              }
+            }
+          }
           // 词典
           let obfuscateDictPath = path.parentPath
           let decryptTypePath = null
@@ -129,7 +147,7 @@ function prehandler (code) {
             }
           }
 
-          if (contextAST.body.length === 3 && obfuscateDictPath && decryptTypePath &&
+          if (contextAST.body.length >= 3 && obfuscateDictPath && decryptTypePath &&
             decryptFunPath?.isFunctionDeclaration() && types.isIdentifier(decryptFunPath.node.id)) {
             console.log('加密方式: 符合jsjiami.com.v6.js特征')
             decryptName = decryptFunPath.node.id.name
@@ -155,6 +173,15 @@ function prehandler (code) {
           if(!obfuscateDictPath?.isFunctionDeclaration()) {
             console.log('超长数组不在函数的包裹下, 不满足jsjiami.com.v7.js特征')
             return;
+          }
+          for (let i = 0; i < path.node.elements.length; i++) {
+            const element = path.node.elements[i];
+            if(types.isIdentifier(element)) {
+              let binding = path.scope.getBinding(element.name);
+              if (binding && types.isVariableDeclarator(binding.path.node)) {
+                contextAST.body.push(binding.path.parentPath.node) // 数组依赖变量
+              }
+            }
           }
           let decryptTypePath = null
           let decryptFunPath = null
@@ -186,8 +213,7 @@ function prehandler (code) {
               }
             }
           }
-
-          if (contextAST.body.length === 3 && obfuscateDictPath && decryptTypePath &&
+          if (contextAST.body.length >= 3 && obfuscateDictPath && decryptTypePath &&
             decryptFunPath?.isFunctionDeclaration() && types.isIdentifier(decryptFunPath.node.id)) {
             console.log('加密方式: 符合jsjiami.com.v7.js特征')
             contextAST.body.unshift(types.variableDeclaration("var", [types.variableDeclarator(types.identifier("version_"), types.stringLiteral("jsjiami.com.v7"))]));
