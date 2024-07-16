@@ -11,6 +11,7 @@ function prehandler (code) {
   })
   const contextASTBody = []
   const contextAST = types.program(contextASTBody)
+  this.flattenCallChain(sourceAST);
 
   let decryptName = ''
 
