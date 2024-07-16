@@ -196,10 +196,16 @@ function prehandler (code) {
           for (const referencePath of referencePaths) {
             // 函数形参
             if (referencePath.isIdentifier() && referencePath.parentPath?.isCallExpression()) {
-              // 混淆函数
+              // 混淆函数 (function(){})()
               const rootPath = referencePath.findParent((p) => p.isCallExpression())?.findParent((p) => p.isExpressionStatement())
               if (rootPath?.isExpressionStatement()) {
                 decryptTypePath = rootPath;
+                contextAST.body.push(decryptTypePath.node)
+              }
+              // 加密函数 if (function () {}(), Iii11l) {}
+              const rootPath2 = referencePath.findParent((p) => p.isCallExpression())?.findParent((p) => p.isIfStatement());
+              if (rootPath2?.isIfStatement()) {
+                decryptTypePath = rootPath2;
                 contextAST.body.push(decryptTypePath.node)
               }
             }
