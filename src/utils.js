@@ -48,7 +48,7 @@ function prehandler (code) {
           // 词典
           let obfuscateDictPath = path.parentPath
           let decryptTypePath = null
-          let decryptFunPath = null
+          const decryptFunPaths = [];
           if (types.isStatement(obfuscateDictPath.node)) {
             contextAST.body.push(obfuscateDictPath.node)
           }
@@ -68,18 +68,19 @@ function prehandler (code) {
               // 加密函数
               const rootPath = referencePath.findParent((p) => p.isFunctionExpression())?.findParent((p) => p.isVariableDeclaration())
               if (rootPath?.isVariableDeclaration()) {
-                decryptFunPath = rootPath;
-                contextAST.body.push(decryptFunPath.node)
+                decryptFunPaths.push(rootPath);
+                decryptNames.push(rootPath.node.declarations[0].id.name);
+                contextAST.body.push(rootPath.node)
               }
             }
           }
-          if (contextAST.body.length >= 3 && obfuscateDictPath && decryptTypePath &&
-            decryptFunPath?.isVariableDeclaration() && types.isIdentifier(decryptFunPath.node.declarations[0].id)) {
+          if (contextAST.body.length >= 3 && obfuscateDictPath && decryptTypePath
+            // decryptFunPath?.isVariableDeclaration() && types.isIdentifier(decryptFunPath.node.declarations[0].id)
+          ) {
             console.log('加密方式: 符合jsjiami.com.v5.js特征')
-            decryptNames.push(decryptFunPath.node.declarations[0].id.name);
             obfuscateDictPath.remove()
             decryptTypePath.remove()
-            decryptFunPath.remove()
+            decryptFunPaths.forEach(p => p.remove());
             path.stop()
           } else {
             console.log('加密方式: 不符合jsjiami.com.v5.js特征')
@@ -122,7 +123,7 @@ function prehandler (code) {
           // 词典
           let obfuscateDictPath = path.parentPath
           let decryptTypePath = null
-          let decryptFunPath = null
+          const decryptFunPaths = []
           if (types.isStatement(obfuscateDictPath.node)) {
             contextAST.body.push(obfuscateDictPath.node)
           }
@@ -142,19 +143,20 @@ function prehandler (code) {
               // 加密函数
               const rootPath = referencePath.findParent((p) => p.isFunctionDeclaration())
               if (rootPath?.isFunctionDeclaration()) {
-                decryptFunPath = rootPath;
-                contextAST.body.push(decryptFunPath.node)
+                decryptFunPaths.push(rootPath);
+                decryptNames.push(rootPath.node.id.name);
+                contextAST.body.push(rootPath.node)
               }
             }
           }
 
-          if (contextAST.body.length >= 3 && obfuscateDictPath && decryptTypePath &&
-            decryptFunPath?.isFunctionDeclaration() && types.isIdentifier(decryptFunPath.node.id)) {
+          if (contextAST.body.length >= 3 && obfuscateDictPath && decryptTypePath
+            // decryptFunPath?.isFunctionDeclaration() && types.isIdentifier(decryptFunPath.node.id)
+          ) {
             console.log('加密方式: 符合jsjiami.com.v6.js特征')
-            decryptNames.push(decryptFunPath.node.id.name);
             obfuscateDictPath.remove()
             decryptTypePath.remove()
-            decryptFunPath.remove()
+            decryptFunPaths.forEach(p => p.remove());
             path.stop()
           } else {
             console.log('加密方式: 不符合jsjiami.com.v6.js特征')
@@ -185,7 +187,7 @@ function prehandler (code) {
             }
           }
           let decryptTypePath = null
-          let decryptFunPath = null
+          const decryptFunPaths = []
           if (types.isStatement(obfuscateDictPath.node)) {
             contextAST.body.push(obfuscateDictPath.node)
           }
@@ -215,19 +217,20 @@ function prehandler (code) {
               // 加密函数
               const rootPath = referencePath.findParent((p) => p.isVariableDeclaration())?.findParent((p) => p.isFunctionDeclaration())
               if (rootPath?.isFunctionDeclaration()) {
-                decryptFunPath = rootPath;
-                contextAST.body.push(decryptFunPath.node)
+                decryptFunPaths.push(rootPath);
+                decryptNames.push(rootPath.node.id.name);
+                contextAST.body.push(rootPath.node)
               }
             }
           }
-          if (contextAST.body.length >= 3 && obfuscateDictPath && decryptTypePath &&
-            decryptFunPath?.isFunctionDeclaration() && types.isIdentifier(decryptFunPath.node.id)) {
+          if (contextAST.body.length >= 3 && obfuscateDictPath && decryptTypePath
+            // decryptFunPath?.isFunctionDeclaration() && types.isIdentifier(decryptFunPath.node.id)
+          ) {
             console.log('加密方式: 符合jsjiami.com.v7.js特征')
             contextAST.body.unshift(types.variableDeclaration("var", [types.variableDeclarator(types.identifier("version_"), types.stringLiteral("jsjiami.com.v7"))]));
-            decryptNames.push(decryptFunPath.node.id.name);
             obfuscateDictPath.remove()
             decryptTypePath.remove()
-            decryptFunPath.remove()
+            decryptFunPaths.forEach(p => p.remove());
             path.stop()
           } else {
             console.log('加密方式: 不符合jsjiami.com.v7.js特征')
@@ -423,7 +426,7 @@ const utils = {
       VariableDeclarator (path) {
         const node = path.node
         if (types.isIdentifier(node.id) && types.isIdentifier(node.init)) {
-          if(path.scope.getBinding(node.init.name).references > 1) {
+          if(path.scope.getBinding(node.init.name)?.references > 1) {
             // 除了自身还有其他的引用就不处理
             return;
           }

@@ -98,7 +98,7 @@ console.log("降低加密函数层级，处理完毕")
 traverse(ast, {
     CallExpression(path) {
         for (const decryptKey in decrypt) {
-            if (path.node.callee.name === decryptKey) {
+            if (path.node.callee?.name === decryptKey) {
                 const args = path.node.arguments;
                 if (args.length === 1) {
                     const arg0 = args[0].value;
