@@ -20,11 +20,10 @@ const code = fs.readFileSync("./dist/source.js").toString();
 const ast = parser.parse(code, {
     allowReturnOutsideFunction: true
 });
-astUtils.simple1(ast);
 fs.writeFileSync(`./target8.js`, generate(ast, {jsescOption: {"minimal": true}}).code);
 
 // 降低加密函数层级
-astUtils.traverse(ast, {
+traverse(ast, {
     VariableDeclarator(path) {
         try {
             if(types.isIdentifier(path.node.init) && path.node.init.name === decrypt.name ) {
@@ -89,14 +88,14 @@ const dfs = function (path) {
         }
     }
 }
-astUtils.traverse(ast, {
+traverse(ast, {
     FunctionDeclaration: dfs
 });
 fs.writeFileSync(`./target0.js`, generate(ast, {jsescOption: {"minimal": true}}).code);
 console.log("降低加密函数层级，处理完毕")
 
 // 全局加密函数
-astUtils.traverse(ast, {
+traverse(ast, {
     CallExpression(path) {
         for (const decryptKey in decrypt) {
             if (path.node.callee.name === decryptKey) {
@@ -143,6 +142,8 @@ if (true) {
             path.replaceWith(node.expression.callee.body);
         }
     })
+    astUtils.simple1(ast);
+    astUtils.simple2(ast);
     fs.writeFileSync(`./target2.js`, generate(ast, {jsescOption: {"minimal": true}}).code);
 
     // 去除while代码
