@@ -98,26 +98,30 @@ console.log("降低加密函数层级，处理完毕")
 // 全局加密函数
 astUtils.traverse(ast, {
     CallExpression(path) {
-        if (path.node.callee.name === decrypt.name) {
-            const args = path.node.arguments;
-            if (args.length === 1) {
-                const arg0 = args[0].value;
-                const decryptedValue = decrypt(arg0);
-                path.replaceWith(types.stringLiteral(unescape(decryptedValue)));
-            } else if (args.length === 2) {
-                const arg0 = isNaN(parseInt(args[0].value)) ? args[0].value : parseInt(args[0].value);
-                const arg1 = args[1].value;
-                const decryptedValue = decrypt(arg0, arg1);
-                path.replaceWith(types.stringLiteral(unescape(decryptedValue)));
+        for (const decryptKey in decrypt) {
+            if (path.node.callee.name === decryptKey) {
+                const args = path.node.arguments;
+                if (args.length === 1) {
+                    const arg0 = args[0].value;
+                    const decryptedValue = decrypt[decryptKey](arg0);
+                    path.replaceWith(types.stringLiteral(unescape(decryptedValue)));
+                } else if (args.length === 2) {
+                    const arg0 = isNaN(parseInt(args[0].value)) ? args[0].value : parseInt(args[0].value);
+                    const arg1 = args[1].value;
+                    const decryptedValue = decrypt[decryptKey](arg0, arg1);
+                    path.replaceWith(types.stringLiteral(unescape(decryptedValue)));
+                }
             }
         }
     },
     MemberExpression(path) {
-        if (path.node.object.name === decrypt.name) {
-            const value = path.node.property.value;
-            if (value || value === 0) {
-                const decryptedValue = decrypt(value);
-                path.replaceWith(types.stringLiteral(unescape(decryptedValue)));
+        for (const decryptKey in decrypt) {
+            if (path.node.object.name === decryptKey) {
+                const value = path.node.property.value;
+                if (value || value === 0) {
+                    const decryptedValue = decrypt[decryptKey](value);
+                    path.replaceWith(types.stringLiteral(unescape(decryptedValue)));
+                }
             }
         }
     }

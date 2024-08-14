@@ -13,10 +13,10 @@ function prehandler (code) {
   const contextAST = types.program(contextASTBody)
   this.flattenCallChain(sourceAST);
 
-  let decryptName = ''
+  const decryptNames = []
 
   // jsjiami.com.v5.js特征: 全局超长数组, 被引用2次, 一次作为形参，一次作为变量
-  if (decryptName === '') {
+  if (decryptNames.length <= 0) {
     traverse(sourceAST, {
       VariableDeclarator (path) {
         const init = path.node.init
@@ -76,7 +76,7 @@ function prehandler (code) {
           if (contextAST.body.length >= 3 && obfuscateDictPath && decryptTypePath &&
             decryptFunPath?.isVariableDeclaration() && types.isIdentifier(decryptFunPath.node.declarations[0].id)) {
             console.log('加密方式: 符合jsjiami.com.v5.js特征')
-            decryptName = decryptFunPath.node.declarations[0].id.name
+            decryptNames.push(decryptFunPath.node.declarations[0].id.name);
             obfuscateDictPath.remove()
             decryptTypePath.remove()
             decryptFunPath.remove()
@@ -90,7 +90,7 @@ function prehandler (code) {
   }
 
   // jsjiami.com.v6.js特征: 全局超长数组, 被引用4次, 一次作为形参，一次作为变量
-  if (decryptName === '') {
+  if (decryptNames.length <= 0) {
     traverse(sourceAST, {
       VariableDeclarator (path) {
         const init = path.node.init
@@ -151,7 +151,7 @@ function prehandler (code) {
           if (contextAST.body.length >= 3 && obfuscateDictPath && decryptTypePath &&
             decryptFunPath?.isFunctionDeclaration() && types.isIdentifier(decryptFunPath.node.id)) {
             console.log('加密方式: 符合jsjiami.com.v6.js特征')
-            decryptName = decryptFunPath.node.id.name
+            decryptNames.push(decryptFunPath.node.id.name);
             obfuscateDictPath.remove()
             decryptTypePath.remove()
             decryptFunPath.remove()
@@ -165,7 +165,7 @@ function prehandler (code) {
   }
 
   // jsjiami.com.v7.js特征: 函数包裹超长数组
-  if (decryptName === '') {
+  if (decryptNames.length <= 0) {
     traverse(sourceAST, {
       ArrayExpression (path) {
         // 词典
@@ -224,7 +224,7 @@ function prehandler (code) {
             decryptFunPath?.isFunctionDeclaration() && types.isIdentifier(decryptFunPath.node.id)) {
             console.log('加密方式: 符合jsjiami.com.v7.js特征')
             contextAST.body.unshift(types.variableDeclaration("var", [types.variableDeclarator(types.identifier("version_"), types.stringLiteral("jsjiami.com.v7"))]));
-            decryptName = decryptFunPath.node.id.name
+            decryptNames.push(decryptFunPath.node.id.name);
             obfuscateDictPath.remove()
             decryptTypePath.remove()
             decryptFunPath.remove()
@@ -237,220 +237,15 @@ function prehandler (code) {
     })
   }
 
-  // if (decryptName === "") {
-  //   traverse(sourceAST, {
-  //     VariableDeclarator(path) {
-  //       if (types.isStringLiteral(path.node.init)) {
-  //         if (path.node.init.value === 'jsjiami.com') {
-  //           const path1 = path.parentPath;
-  //           contextAST.body.push(path1.node);
-  //
-  //           const var2 = path.getNextSibling();
-  //           const path2 = var2.scope.getBinding(var2.node.id.name).referencePaths.map(s => s.parentPath.parentPath)[0];
-  //           contextAST.body.push(path2.node);
-  //
-  //           const path3 = path1.getNextSibling().getNextSibling();
-  //           contextAST.body.push(path3.node);
-  //
-  //           decryptName = path3.node.declarations[0].id.name;
-  //
-  //           path1.remove();
-  //           path2.remove();
-  //           path3.remove();
-  //         } else if (path.node.init.value === 'jsjiami.com.v5') {
-  //           const decryptTypePath = path.parentPath;
-  //           contextAST.body.push(decryptTypePath.node);
-  //
-  //           const var2 = path.getNextSibling().getNextSibling();
-  //           const path2 = var2.scope.getBinding(var2.node.id.name).referencePaths.map(s => s.parentPath.parentPath)[0];
-  //           contextAST.body.push(path2.node);
-  //
-  //           const path3 = decryptTypePath.getNextSibling().getNextSibling();
-  //           contextAST.body.push(path3.node);
-  //
-  //           decryptName = path3.node.declarations[0].id.name;
-  //
-  //           decryptTypePath.remove();
-  //           path2.remove();
-  //           path3.remove();
-  //         } else if (path.node.init.value === 'jsjiami.com.v6') {
-  //           const decryptTypePath = path.parentPath;
-  //           contextAST.body.push(decryptTypePath.node);
-  //
-  //           const var2 = path.getNextSibling().getNextSibling();
-  //           const bindings = path.scope.getBinding(var2.node.id.name).referencePaths.filter(p => types.isMemberExpression(p.parentPath));
-  //           for (const binding of bindings) {
-  //             const ifStatement = binding.findParent(p => p.isIfStatement());
-  //             if (ifStatement && ifStatement.node) {
-  //               contextAST.body.push(ifStatement.node);
-  //             }
-  //             const functionDeclaration = binding.findParent(p => p.isFunctionDeclaration());
-  //             if (functionDeclaration && functionDeclaration.node) {
-  //               contextAST.body.push(functionDeclaration.node);
-  //
-  //               decryptName = functionDeclaration.node.id.name;
-  //             }
-  //           }
-  //
-  //           decryptTypePath.remove();
-  //           for (const binding of bindings) {
-  //             const ifStatement = binding.findParent(p => p.isIfStatement());
-  //             if (ifStatement && ifStatement.node) {
-  //               ifStatement.remove();
-  //             }
-  //             const functionDeclaration = binding.findParent(p => p.isFunctionDeclaration());
-  //             if (functionDeclaration && functionDeclaration.node) {
-  //               functionDeclaration.remove();
-  //             }
-  //           }
-  //         } else if (path.node.init.value === 'jsjiami.com.v7') {
-  //           const decryptTypePath = path.parentPath;
-  //           contextAST.body.push(decryptTypePath.node);
-  //
-  //           const var2 = path.getNextSibling();
-  //           if (!var2.node) {
-  //             // 跳过无用声明
-  //             return;
-  //           }
-  //           const bindings = path.scope.getBinding(var2.node.id.name).referencePaths;
-  //           for (const binding of bindings) {
-  //             if (types.isCallExpression(binding.parentPath)) {
-  //               const obfuscateDictPath = binding.parentPath.parentPath.parentPath;
-  //               contextAST.body.push(obfuscateDictPath.node);
-  //               contextAST.body.push(types.emptyStatement()); // 加分号避免语法错误
-  //               obfuscateDictPath.remove();
-  //             } else if (types.isVariableDeclarator(binding.parentPath)) {
-  //               const decryptFunPath = binding.parentPath.parentPath.parentPath.parentPath;
-  //               contextAST.body.push(decryptFunPath.node);
-  //               decryptName = decryptFunPath.node.id.name;
-  //               decryptFunPath.remove();
-  //             }
-  //           }
-  //           decryptTypePath.remove();
-  //         }
-  //       }
-  //     }
-  //   })
-  // }
-  // if (!decryptName) {
-  //   traverse(sourceAST, {
-  //     FunctionDeclaration(path) {
-  //       const checkFunction = function (p) {
-  //         const name = p.node.id.name;
-  //         const body = p.node.body.body;
-  //         return body.length === 3 &&
-  //           types.isVariableDeclaration(body[0]) && body[0].declarations.length === 1 && (types.isArrayExpression(body[0].declarations[0].init) || types.isCallExpression(body[0].declarations[0].init)) &&
-  //           types.isExpressionStatement(body[1]) && types.isAssignmentExpression(body[1].expression) && body[1].expression.left.name === name &&
-  //           types.isReturnStatement(body[2]);
-  //       }
-  //       if (!checkFunction(path)) {
-  //         return;
-  //       }
-  //       // 词典
-  //       const obfuscateDictPath = path;
-  //       contextAST.body.push(obfuscateDictPath.node);
-  //
-  //       // 混淆函数
-  //       const decryptTypePath = path.scope.getBinding(path.node.id.name).referencePaths
-  //         .filter(p => p.listKey === "arguments" && (p.key === 0 || p.key === 2))
-  //         [0]?.parentPath?.parentPath;
-  //       if (decryptTypePath) {
-  //         contextAST.body.push(decryptTypePath.node);
-  //         contextAST.body.push(types.emptyStatement()); // 加分号避免语法错误
-  //       }
-  //
-  //       // 加密函数
-  //       const decryptFunPath = path.scope.getBinding(path.node.id.name).referencePaths
-  //         .map(p => p.parentPath.parentPath)
-  //         .filter(p => types.isVariableDeclarator(p))
-  //         .map(p => p.parentPath.parentPath.parentPath)
-  //         .filter(p => types.isFunctionDeclaration(p)).pop(); // 取最后一个元素
-  //       contextAST.body.push(decryptFunPath.node);
-  //
-  //       decryptName = decryptFunPath.node.id.name;
-  //
-  //       if (decryptTypePath) {
-  //         decryptTypePath.remove();
-  //       }
-  //       decryptFunPath.remove();
-  //       obfuscateDictPath.remove();
-  //     }
-  //   })
-  // }
-  //
-  // if (!decryptName) {
-  //   traverse(sourceAST, {
-  //     FunctionDeclaration(path) {
-  //       const checkFunction = function (p) {
-  //         const name = p.node.id.name;
-  //         const body = p.node.body.body;
-  //         return body.length === 2 &&
-  //           types.isVariableDeclaration(body[0]) && body[0].declarations.length === 1 && (types.isIdentifier(body[0].declarations[0].init)) &&
-  //           types.isReturnStatement(body[1]) && body[1].argument.expressions.length === 2 &&
-  //           types.isAssignmentExpression(body[1].argument.expressions[0]) && types.isIdentifier(body[1].argument.expressions[0].left) && name === body[1].argument.expressions[0].left.name &&
-  //           types.isCallExpression(body[1].argument.expressions[1]) && types.isIdentifier(body[1].argument.expressions[1].callee) && name === body[1].argument.expressions[1].callee.name;
-  //       }
-  //       if (!checkFunction(path)) {
-  //         return;
-  //       }
-  //       console.log('加密方式: unknown 2');
-  //       // 加密函数
-  //       const decryptFunPath = path;
-  //       contextAST.body.push(decryptFunPath.node);
-  //       // 词典
-  //       const obfuscateDictName = path.node.body.body[0].declarations[0].init.name;
-  //       let obfuscateDictPath;
-  //       traverse(sourceAST, {
-  //         AssignmentExpression(path) {
-  //           if (path.node.left.name === obfuscateDictName) {
-  //             obfuscateDictPath = path;
-  //             contextAST.body.push(obfuscateDictPath.node);
-  //             contextAST.body.push(types.emptyStatement()); // 加分号避免语法错误
-  //             path.stop();
-  //           }
-  //         }
-  //       })
-  //       // 混淆函数
-  //       let decryptTypePath;
-  //       traverse(sourceAST, {
-  //         CallExpression(path) {
-  //           const args = path.node.arguments;
-  //           for (let i = 0; i < args.length; i++) {
-  //             const arg = args[i];
-  //             if (types.isIdentifier(arg) && arg.name === obfuscateDictName) {
-  //               decryptTypePath = path.findParent(p => types.isExpressionStatement(p));
-  //               path.stop();
-  //               return;
-  //             }
-  //           }
-  //         }
-  //       });
-  //       contextAST.body.push(decryptTypePath.node);
-  //       contextAST.body.push(types.emptyStatement()); // 加分号避免语法错误
-  //       decryptName = decryptFunPath.node.id.name;
-  //       decryptTypePath.remove();
-  //       decryptFunPath.remove();
-  //       obfuscateDictPath.remove();
-  //     }
-  //   })
-  // }
-
-  if (!decryptName) {
+  if (decryptNames.length <= 0) {
     throw 'decryptName 解析失败, 可能是未识别的加密方式'
   }
   contextAST.body.push(...parser.parse(`
-    const name = "${decryptName}";
-    const _decrypt = ${decryptName};
-
-    Object.defineProperty((arg) => _decrypt[arg], "name", { value: name });
-    switch (_decrypt.constructor.name) {
-        case "Array" : exports.decrypt=Object.defineProperty((arg) => _decrypt[arg], "name", { value: name }); break;
-        case "Function": exports.decrypt=_decrypt; break;
-        default: throw "不支持的全局加密函数";
-    }
+    const _decrypt = {${decryptNames.map(i => `${i}:${i}`).join(',')}};
+    exports.decrypt=_decrypt;
 `).program.body)
 
-  if (decryptName) {
+  if (decryptNames) {
     fs.writeFileSync(`./dist/context.js`, generate(contextAST, {
       minified: true,
       jsescOption: { 'minimal': true }
