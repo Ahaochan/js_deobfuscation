@@ -23,3 +23,10 @@ const realVar1 = {
 const myvar1 = realVar1;
 console.log(myvar1.XVrLR);
 console.log(myvar1.mMzYI);
+
+const a = {};
+a.aa = 123;
+const b = a;
+const c = b;
+const d = 1;
+const e = d;

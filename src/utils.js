@@ -423,6 +423,10 @@ const utils = {
       VariableDeclarator (path) {
         const node = path.node
         if (types.isIdentifier(node.id) && types.isIdentifier(node.init)) {
+          if(path.scope.getBinding(node.init.name).references > 1) {
+            // 除了自身还有其他的引用就不处理
+            return;
+          }
           const sourceVar = path.scope.getBinding(node.init.name)?.path?.node
           if (sourceVar && types.isVariableDeclarator(sourceVar) && types.isObjectExpression(sourceVar.init)) {
             path.replaceWith(types.variableDeclarator(node.id, sourceVar.init))
