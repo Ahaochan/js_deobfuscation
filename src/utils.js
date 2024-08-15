@@ -266,6 +266,9 @@ const utils = {
     this.simple1(ast)
   },
   simple1: function (ast) {
+    ast = this.apply(ast)
+    this.simple2(ast)
+    
     ast = this.mergeObject(ast)
     this.simple2(ast)
 
@@ -295,7 +298,33 @@ const utils = {
 
     traverse.cache.clear()
   },
+  apply: (ast) => {
+    traverse(ast, {
+      "FunctionDeclaration" (path) {
+        if(path.node.body.body.length === 1 && types.isReturnStatement(path.node.body.body[0])) {
+          const returnStatement = path.node.body.body[0];
+          // 判断是O.apply(this, arguments);
+          if(types.isCallExpression(returnStatement.argument) && types.isMemberExpression(returnStatement.argument.callee) &&
+              types.isIdentifier(returnStatement.argument.callee.property, { name: "apply" }) &&
+              returnStatement.argument.arguments.length === 2 && // 检查是否传递了两个参数
+              types.isThisExpression(returnStatement.argument.arguments[0]) && // 第一个参数是否是 this
+              types.isIdentifier(returnStatement.argument.arguments[1], { name: "arguments" }) // 第二个参数是否是 arguments
+              ) {
 
+            // 找到方法引用，并进行替换
+            for (const referencePath of path.scope.getBinding(path.node.id.name).referencePaths) {
+              if(types.isCallExpression(referencePath.parent) && referencePath.parent.callee.name === path.node.id.name) {
+                const newCallExpression = types.callExpression(returnStatement.argument.callee.object, referencePath.parent.arguments);
+                referencePath.parentPath.replaceWith(newCallExpression);
+              }
+            }
+            path.scope.crawl();
+          }
+        }
+      }
+    });
+    return ast;
+  },
   evaluateExpression: (ast) => {
     // 表达式还原
     traverse(ast, {

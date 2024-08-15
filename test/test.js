@@ -8,12 +8,13 @@ const parser = require('@babel/parser');
     allowReturnOutsideFunction: true
   }
 
+  const ast = testApply(astConfig);
   // const ast = testEvaluateExpression(astConfig);
   // const ast = testEvaluateFunction(astConfig);
   // const ast = testFlattenCallChain(astConfig);
   // const ast = testInlineFunction(astConfig);
   // const ast = testMergeObject(astConfig);
-  const ast = testRemoveDoubleBlock(astConfig);
+  // const ast = testRemoveDoubleBlock(astConfig);
   // const ast = testRemoveEmptyStatement(astConfig);
   // const ast = testRemoveUnusedIf(astConfig);
   // const ast = testRemoveUnusedVar(astConfig);
@@ -25,6 +26,12 @@ const parser = require('@babel/parser');
   fs.writeFileSync(`./output.js`, generate(ast, {jsescOption: {minimal: true}}).code);
   console.log("处理完毕");
 })();
+
+function testApply(astConfig) {
+  const code = fs.readFileSync("../example/apply.js").toString();
+  const ast = parser.parse(code, astConfig);
+  return utils.apply(ast);
+}
 
 function testEvaluateExpression(astConfig) {
   const code = fs.readFileSync("../example/evaluateExpression.js").toString();
